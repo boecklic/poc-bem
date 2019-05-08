@@ -1,0 +1,100 @@
+                                                                                                                                                Table "public.dataset"
+                Column                 |            Type             |                              Modifiers                               | Storage  | Stats target |                                                                  Description                                                                  
+---------------------------------------+-----------------------------+----------------------------------------------------------------------+----------+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------
+ id                                    | integer                     | not null default nextval('dataset_and_groups_id_seq'::regclass)      | plain    |              | 
+ parent_id                             | text                        |                                                                      | extended |              | Technische Layer ID der Gruppe zu welcher eine oder mehrere datasets gehören, Einschränkung ein dataset kann zu maximal einer gruppe gehören.
+ id_dataset                            | text                        | not null                                                             | extended |              | Eindeutiger Name des datasets oder layer entsprechend Namenskonvention Layernamen, entspricht dem layername. 
+ frm_bezeichnung_de                    | text                        |                                                                      | extended |              | 
+ frm_bezeichnung_fr                    | text                        |                                                                      | extended |              | 
+ frm_bezeichnung_it                    | text                        |                                                                      | extended |              | 
+ frm_bezeichnung_en                    | text                        |                                                                      | extended |              | 
+ frm_bezeichnung_rm                    | text                        |                                                                      | extended |              | 
+ frm_abstract_de                       | text                        |                                                                      | extended |              | 
+ frm_abstract_fr                       | text                        |                                                                      | extended |              | 
+ frm_abstract_it                       | text                        |                                                                      | extended |              | 
+ frm_abstract_en                       | text                        |                                                                      | extended |              | 
+ frm_abstract_rm                       | text                        |                                                                      | extended |              | 
+ kurzbezeichnung_de                    | text                        |                                                                      | extended |              | 
+ kurzbezeichnung_fr                    | text                        |                                                                      | extended |              | 
+ kurzbezeichnung_it                    | text                        |                                                                      | extended |              | 
+ kurzbezeichnung_en                    | text                        |                                                                      | extended |              | 
+ kurzbezeichnung_rm                    | text                        |                                                                      | extended |              | 
+ frm_nachfuehrung_intervall            | text                        | not null default 'andere'::text                                      | extended |              | 
+ frm_scale_limit                       | text                        | not null default '-'::text                                           | extended |              | 
+ ms_minscaledenom                      | integer                     |                                                                      | plain    |              | wms-bgdi / Geoadmin Spezifische MapFileParameter                                                                                             +
+                                       |                             |                                                                      |          |              | i18n script benutzt diese spalte
+ ms_maxscaledenom                      | integer                     |                                                                      | plain    |              | wms-bgdi / Geoadmin Spezifische MapFileParameter                                                                                             +
+                                       |                             |                                                                      |          |              | i18n script benutzt diese spalte
+ ms_labelminscaledenom                 | integer                     | default '-1'::integer                                                | plain    |              | wms-bgdi / Geoadmin Spezifische MapFileParameter                                                                                             +
+                                       |                             |                                                                      |          |              | i18n script benutzt diese spalte, set to -1 will not change the labelmaxscaledenom during the mapfile translation
+ ms_labelmaxscaledenom                 | integer                     | default '-1'::integer                                                | plain    |              | wms-bgdi / Geoadmin Spezifische MapFileParameter                                                                                             +
+                                       |                             |                                                                      |          |              | i18n script benutzt diese spalte, set to -1 will not change the labelmaxscaledenom during the mapfile translation
+ frm_url                               | text                        |                                                                      | extended |              | Informations URL aus dem Datenintegrations Formular
+ b1_nutzungsbedingungen                | text                        |                                                                      | extended |              | URL zu den Nutzungsbedingungen
+ b1_urheberrecht                       | text                        |                                                                      | extended |              | 
+ url_download                          | text                        |                                                                      | extended |              | URL zum Download Dienst
+ url_portale                           | text                        |                                                                      | extended |              | Liste mit URLs von Portalen die diesen Datensatz verwenden.
+ fk_geobasisdaten_sammlung_bundesrecht | text                        |                                                                      | extended |              | 
+ fk_geocat                             | text                        |                                                                      | extended |              | referencing regular grid raster extent
+ fk_datasource_id                      | text                        |                                                                      | extended |              | 
+ fk_contactorganisation_id             | integer                     |                                                                      | plain    |              | 
+ comment                               | text                        | default ''::text                                                     | extended |              | 
+ staging                               | text                        | default 'test'::text                                                 | extended |              | 
+ bodsearch                             | boolean                     | not null default false                                               | plain    |              | bodsearch true/false set true if layer should be visible in chsdi layers, feature, bodsearch.
+ bgdi_id                               | integer                     | not null default nextval('dataset_and_groups_bgdi_id_seq'::regclass) | plain    |              | 
+ download                              | boolean                     | not null default false                                               | plain    |              | chargeable true/false if layer wmts access is chargeable or not
+ bgdi_modified                         | timestamp without time zone |                                                                      | plain    |              | 
+ bgdi_created                          | timestamp without time zone |                                                                      | plain    |              | 
+ bgdi_modified_by                      | character varying(50)       |                                                                      | extended |              | 
+ bgdi_created_by                       | character varying(50)       |                                                                      | extended |              | 
+ ows_keywordlist_de                    | text                        |                                                                      | extended |              | 
+ ows_keywordlist_fr                    | text                        |                                                                      | extended |              | 
+ ows_keywordlist_it                    | text                        |                                                                      | extended |              | 
+ ows_keywordlist_en                    | text                        |                                                                      | extended |              | 
+ ows_keywordlist_rm                    | text                        |                                                                      | extended |              | 
+ chargeable                            | boolean                     | not null default false                                               | plain    |              | 
+Indexes:
+    "pk_dataset_and_groups_id" PRIMARY KEY, btree (id_dataset)
+    "dataset_and_groups_bgdi_id_unique" UNIQUE, btree (bgdi_id)
+    "dataset_id_sphinx_restriction_unique" UNIQUE, btree (replace(substr(id_dataset, 1, 63), '.'::text, '_'::text))
+    "id_serial_dataset_and_groups_pk" UNIQUE CONSTRAINT, btree (id)
+    "fki_dataset_datasource" btree (fk_datasource_id)
+    "fki_dataset_geocat" btree (fk_geocat)
+    "fki_dataset_layer_group_geocat" btree (fk_geocat)
+Check constraints:
+    "nachfuehrung_domain" CHECK (frm_nachfuehrung_intervall = ANY (ARRAY['annual'::text, 'andere'::text, 'monatlich'::text, 'jaehrlich'::text, 'keine'::text, 'woechentlich'::text, 'wenn noetig'::text, 'laufend'::text, 'taeglich'::text, 'vierteljaehrlich'::text, 'vierzehntaeglich'::text, 'halbjaehrlich'::text]))
+    "notnullchk_frm_abstract_de" CHECK (NOT frm_abstract_de = '--'::text AND NOT char_length(frm_abstract_de) = 0)
+    "notnullchk_frm_abstract_fr" CHECK (NOT frm_abstract_fr = '--'::text AND NOT char_length(frm_abstract_fr) = 0)
+    "notnullchk_frm_bezeichnung_de" CHECK (NOT frm_bezeichnung_de = '--'::text AND NOT char_length(frm_bezeichnung_de) = 0)
+    "notnullchk_frm_bezeichnung_en" CHECK (NOT frm_bezeichnung_en = '--'::text AND NOT char_length(frm_bezeichnung_en) = 0)
+    "notnullchk_frm_bezeichnung_fr" CHECK (NOT frm_bezeichnung_fr = '--'::text AND NOT char_length(frm_bezeichnung_fr) = 0)
+    "notnullchk_frm_bezeichnung_it" CHECK (NOT frm_bezeichnung_it = '--'::text AND NOT char_length(frm_bezeichnung_it) = 0)
+    "notnullchk_frm_bezeichnung_rm" CHECK (NOT frm_bezeichnung_rm = '--'::text AND NOT char_length(frm_bezeichnung_rm) = 0)
+    "notnullchk_kurzbezeichnung_de" CHECK (NOT kurzbezeichnung_de = '--'::text AND NOT char_length(kurzbezeichnung_de) = 0)
+    "notnullchk_kurzbezeichnung_fr" CHECK (NOT kurzbezeichnung_fr = '--'::text AND NOT char_length(kurzbezeichnung_fr) = 0)
+    "staging_domain" CHECK (staging = ANY (ARRAY['test'::text, 'integration'::text, 'prod'::text]))
+Foreign-key constraints:
+    "fk_geocat_data" FOREIGN KEY (fk_geocat) REFERENCES geocat_data(id) ON UPDATE CASCADE ON DELETE SET NULL
+    "fk_parent_id" FOREIGN KEY (parent_id) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    "link_contactorganisation_dataset" FOREIGN KEY (fk_contactorganisation_id) REFERENCES contactorganisation(pk_contactorganisation_id) ON UPDATE CASCADE ON DELETE SET NULL
+Referenced by:
+    TABLE "atom_feed_data" CONSTRAINT "fk_dataset" FOREIGN KEY (fk_id_dataset) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "atom_feed" CONSTRAINT "fk_dataset" FOREIGN KEY (fk_id_dataset) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "atom_feed_repository" CONSTRAINT "fk_dataset" FOREIGN KEY (fk_id_dataset) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "xt_dataset_wms" CONSTRAINT "fk_dataset" FOREIGN KEY (fk_id_dataset) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "tileset" CONSTRAINT "fk_dataset" FOREIGN KEY (fk_dataset_id) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "dataset_tags" CONSTRAINT "fk_layer_id" FOREIGN KEY (layer_id) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "dataset" CONSTRAINT "fk_parent_id" FOREIGN KEY (parent_id) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "re3.layers_js" CONSTRAINT "layers_js_fk_id_dataset_fkey" FOREIGN KEY (fk_id_dataset) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "dataset_cache" CONSTRAINT "link_dataset_cache_to_dataset" FOREIGN KEY (layer_id) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "dataset_timestamps" CONSTRAINT "link_dataset_timestamps_to_dataset" FOREIGN KEY (layer_id) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "ms_class" CONSTRAINT "link_ms_class_layer_metadata" FOREIGN KEY (fk_layer_name) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "ms_item" CONSTRAINT "link_ms_item_layer_metadata" FOREIGN KEY (fk_layer_name) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "re3.oereb_interlis_metadata" CONSTRAINT "oereb_interlis_metadata_layer_id_fkey" FOREIGN KEY (layer_id) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "re3.xt_dataset_catalog" CONSTRAINT "xt_dataset_catalog_fk_dataset_only_fkey" FOREIGN KEY (fk_dataset) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+    TABLE "re3.xt_dataset_topics" CONSTRAINT "xt_dataset_topics_fk_dataset_fkey" FOREIGN KEY (fk_dataset) REFERENCES dataset(id_dataset) ON UPDATE CASCADE ON DELETE CASCADE
+Triggers:
+    dataset_update_translation AFTER INSERT OR DELETE OR UPDATE ON dataset FOR EACH ROW EXECUTE PROCEDURE dataset_update_translation()
+    update_metaspalten_dataset BEFORE INSERT OR UPDATE ON dataset FOR EACH ROW EXECUTE PROCEDURE setze_lastupdate_firstdate()
+Has OIDs: yes
+
