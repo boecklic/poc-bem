@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'django_extensions',
     'mptt',                 # tree models in django
     'drf_yasg',             # Yet another swagger generator
-    'django_ace',           # ace editor in django admin
+    'django_ace',           # ace editor in django admin (DOES NOT WORK YET)
+    'prettyjson',           # nice json in admin
     'bod_master.apps.BodMasterConfig',
     'layers.apps.LayersConfig',
     'translation.apps.TranslationConfig',

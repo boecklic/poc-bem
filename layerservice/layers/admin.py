@@ -4,8 +4,10 @@ from django.urls import reverse
 from django.utils.html import mark_safe
 
 from django_ace import AceWidget
+from prettyjson import PrettyJSONWidget
 
-from layers.models import Dataset, Tileset, WMS
+
+from layers.models import Dataset, Tileset, MapServerConfig
 from translation.models import Translation
 
 
@@ -15,24 +17,27 @@ class TilesetInline(admin.StackedInline):
     extra = 0
 
 
-class WMSForm(forms.ModelForm):
+class MapServerConfigForm(forms.ModelForm):
 
-    mapfile = forms.CharField(widget=AceWidget(
-        mode='mapfile',
-        width="1000px", 
-        height="500px",
-    ))
+    # mapfile = forms.CharField(widget=AceWidget(
+    #     mode='mapfile',
+    #     width="1000px", 
+    #     height="500px",
+    # ))
 
     class Meta:
-        model = WMS
+        model = MapServerConfig
         fields = ['publication_services', 'mapfile', 'mapfile_json', 'dataset']
+        widgets = {
+            'mapfile_json': PrettyJSONWidget(attrs={'initial': 'parsed'}),
+        }
 
 
-@admin.register(WMS)
-class WMSAdmin(admin.ModelAdmin):
+@admin.register(MapServerConfig)
+class MapServerConfigAdmin(admin.ModelAdmin):
     list_display = ('dataset', 'modified', 'publication_services_str')
     search_fields = ('dataset__layer_name',)
-    form = WMSForm
+    form = MapServerConfigForm
     autocomplete_fields = ['dataset']
     readonly_fields = ['mapfile_json']
 
@@ -42,11 +47,11 @@ class WMSAdmin(admin.ModelAdmin):
 
 
 
-class WMSInline(admin.StackedInline):
-    model = WMS
-    form = WMSForm
-    readonly_fields = ('mapfile_json',)
-    extra = 1
+class MapServerConfigInline(admin.StackedInline):
+    model = MapServerConfig
+    form = MapServerConfigForm
+    # readonly_fields = ('mapfile_json',)
+    extra = 0
 
 
 
@@ -59,7 +64,7 @@ class DatasetAdmin(admin.ModelAdmin):
     search_fields = ('layer_name', )
     list_filter = ('chargeable',)
 
-    inlines = [TilesetInline, WMSInline]
+    inlines = [TilesetInline, MapServerConfigInline]
     readonly_fields = ('abstract_link', 'description_link')
     fields = ('layer_name', 'abstract_link', 'description_link', 'timing')
 

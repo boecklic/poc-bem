@@ -1,6 +1,7 @@
 import logging
 import dateutil.parser
 import re
+import json
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -8,7 +9,11 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.contrib.postgres.fields import JSONField
 
+import mappyfile
+
 from translation.models import TranslationKey, Translation, TranslatableMixin
+
+
 
 # import reversion
 # Create your models here.
@@ -99,6 +104,21 @@ class Dataset(TranslatableMixin, models.Model):
         default='current',
         validators=[validate_timing])
 
+    DATATYPE_RASTER = 'raster'
+    DATATYPE_POINT = 'point'
+    DATATYPE_POLYGON = 'polygon'
+    DATATYPE_CHOICES = (
+        (DATATYPE_RASTER, 'raster'),
+        (DATATYPE_POINT, 'point'),
+        (DATATYPE_POLYGON, 'polygon')
+    )
+    datatype = models.CharField(
+        max_length=32,
+        choices=DATATYPE_CHOICES,
+        default='polygon',
+        db_index=True
+    )
+
     def __str__(self):
         return self.layer_name
 
@@ -125,14 +145,25 @@ class Tileset(models.Model):
     publication_service = models.ForeignKey('publication.WMTS', null=True, blank=True, on_delete=models.SET_NULL)
 
 
-class WMS(models.Model):
+class MapServerConfig(models.Model):
 
     created = models.DateTimeField(default=timezone.now)
     modified = models.DateTimeField(default=timezone.now)
     dataset = models.ForeignKey('layers.Dataset', on_delete=models.CASCADE)
 
-    timestamp = models.DateTimeField(default=timezone.now)
+    timestamp = models.DateTimeField(default=None, null=True, blank=True)
     publication_services = models.ManyToManyField('publication.WMS')
 
     mapfile = models.TextField()
     mapfile_json = JSONField(blank=True)
+
+    
+    def clean(self):
+        """clean is called during .save() to validate the model fields"""
+        try:
+            parsed_mapfile = mappyfile.loads(self.mapfile)
+        except Exception as e:
+            raise ValidationError("couldn't parse mapfile content: {}".format(e))
+        else:
+            self.mapfile_json = parsed_mapfile
+            self.mapfile_json['metadata']['wms_title'] = self.dataset.layer_name
