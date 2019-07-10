@@ -1,6 +1,13 @@
-from layers.models import LayersJS, LayersJSView
+from bod_master.models import (LayersJS, LayersJSView, Topic,
+    Catalog, XTDatasetCatalog, XTDatasetTopic)
 
-RE3_MODELS = [LayersJS, LayersJSView]
+RE3_MODELS = [LayersJS,
+    LayersJSView,
+    Topic,
+    Catalog,
+    XTDatasetTopic,
+    XTDatasetCatalog
+]
 
 class SchemaEnabledDBRouter(object):
 	# inspired by https://stackoverflow.com/a/51007441/9896222

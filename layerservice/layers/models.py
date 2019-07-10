@@ -1,197 +1,138 @@
-from django.db import models
+import logging
+import dateutil.parser
+import re
 
+from django.core.exceptions import ValidationError
+from django.db import models
+from django.utils import timezone
+from django.utils.translation import gettext as _
+from django.contrib.postgres.fields import JSONField
+
+from translation.models import TranslationKey, Translation, TranslatableMixin
+
+# import reversion
 # Create your models here.
+logger = logging.getLogger('default')
+
+def validate_iso8601(value):
+    try:
+        parsed = dateutil.parser.parse(value)
+    except Exception as e:
+        raise ValidationError(e)
+    return parsed
+
+def validate_iso8601duration(value):
+    # regex to validate iso 8601 duration is borrowed from
+    # here: https://stackoverflow.com/a/32045167
+    durex = re.compile(r"^P(?!$)(\d+(?:\.\d+)?Y)?(\d+(?:\.\d+)?M)?(\d+(?:\.\d+)?W)?(\d+(?:\.\d+)?D)?(T(?=\d)(\d+(?:\.\d+)?H)?(\d+(?:\.\d+)?M)?(\d+(?:\.\d+)?S)?)?$")
+    match = durex.match(value)
+    print(value,match)
+    if match:
+        return value
+    else:
+        raise ValidationError(
+            _('%(value)s is not a valid ISO 8601 duration'),
+            params={'value': value}
+        )
+
+def validate_timing(value):
+    if value == 'current':
+        return
+    
+    parts = value.split(',')
+    for part in parts:
+        if '/' in part:
+            try:
+                _start,_end,_res = part.split('/')
+            except ValueError as e:
+                raise ValidationError(e)
+            validate_iso8601(_start)
+            validate_iso8601(_end)
+            validate_iso8601duration(_res)
+        elif part:
+            validate_iso8601(part)
+        else:
+            # happens e.g. with trailing comma
+            raise ValidationError(
+                _('Empty string, maybe you have a trailing comma?')
+            )
+
+
+# @reversion.register()
+class Dataset(TranslatableMixin, models.Model):
+
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    layer_name = models.CharField(max_length=512, unique=True)
+    description = models.OneToOneField(
+        'translation.TranslationKey',
+        verbose_name=_('description'),
+        on_delete=models.SET_NULL,
+        related_name='dataset_description',
+        null=True
+    )
+    short_description = models.OneToOneField(
+        'translation.TranslationKey',
+        verbose_name=_('short_description'),
+        on_delete=models.SET_NULL,
+        related_name='dataset_short_description',
+        null=True
+    )
+    abstract = models.OneToOneField(
+        'translation.TranslationKey',
+        verbose_name=_('abstract'),
+        on_delete=models.SET_NULL,
+        related_name='dataset_abstract',
+        null=True
+    )
+
+    chargeable = models.BooleanField(default=False)
+    timing = models.CharField(max_length=256, help_text="""Timing can have one of 
+        the following formats: 
+        <pre>current | TT | TT,TT,TT | TT/TT/RES</pre>
+        where <em>TT</em> is a valid ISO 8601 timestamp (e.g. 2015-05-12T13:54:01Z), 
+        and <em>RES</em> is the resolution in the form <b>P</b>[n]Y[n]M[n]D<b>T</b>[n]H[n]M[n]S 
+        (e.g. P1Y). Examples
+        <pre>2008,2011,2012</pre>
+        <pre>2005-11-01T10:15Z/2019-02-15T09:30Z/PT5M</pre>
+        """, 
+        default='current',
+        validators=[validate_timing])
+
+    def __str__(self):
+        return self.layer_name
 
 class Tileset(models.Model):
 
-    fk_dataset_id = models.CharField(max_length=1024, null=False, db_column='fk_dataset_id') #   | character varying           | not null
-    format = models.CharField(max_length=1024, null=True, db_column='format') #            | character varying           | 
-    timestamp = models.CharField(max_length=1024, null=False, db_column='timestamp') #         | character varying           | not null
-    bgdi_modified = models.DateTimeField(auto_now=True, db_column='bgdi_modified')#     | timestamp without time zone | 
-    bgdi_created = models.DateTimeField(db_column='bgdi_created') #    | timestamp without time zone | 
-    bgdi_modified_by = models.CharField(max_length=50, db_column='bgdi_modified_by', null=True) #  | character varying(50)       | 
-    bgdi_created_by = models.CharField(max_length=50, db_column='bgdi_created_by', null=True) #  | character varying(50)       | 
-    bgdi_id = models.PositiveIntegerField(db_column='bgdi_id', primary_key=True) #          | integer                     | not null default nextval('tileset_bgdi_id_seq'::regclass)
-    wms_gutter = models.PositiveIntegerField(db_column='wms_gutter', default=0) #        | integer                     | not null default 0
-    cache_ttl = models.PositiveIntegerField(db_column='cache_ttl', default=1800, help_text='Cache "time to live"') #       | integer                     | default 1800
-    resolution_min = models.DecimalField(db_column='resolution_min', max_digits=7, decimal_places=2) #   | numeric                     | default 4000.0
-    resolution_max = models.DecimalField(db_column='resolution_max', max_digits=7, decimal_places=2) #   | numeric                     | default 0.25
-    published = models.BooleanField(db_column='published', default=True) #         | boolean                     | default true
-    # s3_resolution_max = models.| numeric                     | 
+    # TODO LEGACY_CLEANUP: once legacy sync is dropped, add
+    # auto_now_add=True and auto_now=True respectively
+    created = models.DateTimeField(default=timezone.now)
+    modified = models.DateTimeField(default=timezone.now)
+    dataset = models.ForeignKey('layers.Dataset', on_delete=models.CASCADE)
 
-
-
-    class Meta:
-        managed = False
-        db_table = 'tileset'
-
-    def __str__(self):
-        return self.fk_dataset_id
-
-
-class Dataset(models.Model):
-
-    # id colum is automatically added
-    # id = models.TextField(db_column='id') #                                    | integer                     | not null default nextval('dataset_and_groups_id_seq'::regclass)      | plain    |              | 
-    parent_id = models.TextField(db_column='parent_id', help_text="Technische Layer ID der Gruppe zu welcher eine oder mehrere datasets gehören, Einschränkung ein dataset kann zu maximal einer gruppe gehören.") #                             | text                        |                                                                      | extended |              | Technische Layer ID der Gruppe zu welcher eine oder mehrere datasets gehören, Einschränkung ein dataset kann zu maximal einer gruppe gehören.
-    id_dataset = models.TextField(db_column='id_dataset', null=False, help_text="Eindeutiger Name des datasets oder layer entsprechend Namenskonvention Layernamen, entspricht dem layername. ") #                            | text                        | not null                                                             | extended |              | Eindeutiger Name des datasets oder layer entsprechend Namenskonvention Layernamen, entspricht dem layername. 
-    frm_bezeichnung_de = models.TextField(db_column='frm_bezeichnung_de') #                    | text                        |                                                                      | extended |              | 
-    frm_bezeichnung_fr = models.TextField(db_column='frm_bezeichnung_fr') #                    | text                        |                                                                      | extended |              | 
-    frm_bezeichnung_it = models.TextField(db_column='frm_bezeichnung_it') #                    | text                        |                                                                      | extended |              | 
-    frm_bezeichnung_en = models.TextField(db_column='frm_bezeichnung_en') #                    | text                        |                                                                      | extended |              | 
-    frm_bezeichnung_rm = models.TextField(db_column='frm_bezeichnung_rm') #                    | text                        |                                                                      | extended |              | 
-    frm_abstract_de = models.TextField(db_column='frm_abstract_de') #                       | text                        |                                                                      | extended |              | 
-    frm_abstract_fr = models.TextField(db_column='frm_abstract_fr') #                       | text                        |                                                                      | extended |              | 
-    frm_abstract_it = models.TextField(db_column='frm_abstract_it') #                       | text                        |                                                                      | extended |              | 
-    frm_abstract_en = models.TextField(db_column='frm_abstract_en') #                       | text                        |                                                                      | extended |              | 
-    frm_abstract_rm = models.TextField(db_column='frm_abstract_rm') #                       | text                        |                                                                      | extended |              | 
-    kurzbezeichnung_de = models.TextField(db_column='kurzbezeichnung_de') #                    | text                        |                                                                      | extended |              | 
-    kurzbezeichnung_fr = models.TextField(db_column='kurzbezeichnung_fr') #                    | text                        |                                                                      | extended |              | 
-    kurzbezeichnung_it = models.TextField(db_column='kurzbezeichnung_it') #                    | text                        |                                                                      | extended |              | 
-    kurzbezeichnung_en = models.TextField(db_column='kurzbezeichnung_en') #                    | text                        |                                                                      | extended |              | 
-    kurzbezeichnung_rm = models.TextField(db_column='kurzbezeichnung_rm') #                    | text                        |                                                                      | extended |              | 
-    frm_nachfuehrung_intervall = models.TextField(db_column='frm_nachfuehrung_intervall', default='andere') #            | text                        | not null default 'andere'::text                                      | extended |              | 
-    frm_scale_limit = models.TextField(db_column='frm_scale_limit', default='-') #                       | text                        | not null default '-'::text                                           | extended |              | 
-    ms_minscaledenom = models.IntegerField(db_column='ms_minscaledenom') #                      | integer                     |                                                                      | plain    |              | wms-bgdi / Geoadmin Spezifische MapFileParameter                                                                                             +
-    ms_maxscaledenom = models.IntegerField(db_column='ms_maxscaledenom') #                      | integer                     |                                                                      | plain    |              | wms-bgdi / Geoadmin Spezifische MapFileParameter                                                                                             +
-    ms_labelminscaledenom = models.IntegerField(db_column='ms_labelminscaledenom', default=-1) #                 | integer                     | default '-1'::integer                                                | plain    |              | wms-bgdi / Geoadmin Spezifische MapFileParameter                                                                                             +
-    ms_labelmaxscaledenom = models.IntegerField(db_column='ms_labelmaxscaledenom', default=-1) #                 | integer                     | default '-1'::integer                                                | plain    |              | wms-bgdi / Geoadmin Spezifische MapFileParameter                                                                                             +
-    frm_url = models.TextField(db_column='frm_url', help_text="Informations URL aus dem Datenintegrations Formular") #                               | text                        |                                                                      | extended |              | Informations URL aus dem Datenintegrations Formular
-    b1_nutzungsbedingungen = models.TextField(db_column='b1_nutzungsbedingungen', help_text="URL zu den Nutzungsbedingungen") #                | text                        |                                                                      | extended |              | URL zu den Nutzungsbedingungen
-    b1_urheberrecht = models.TextField(db_column='b1_urheberrecht') #                       | text                        |                                                                      | extended |              | 
-    url_download = models.TextField(db_column='url_download', help_text="URL zum Download Dienst") #                          | text                        |                                                                      | extended |              | URL zum Download Dienst
-    url_portale = models.TextField(db_column='url_portale', help_text="Liste mit URLs von Portalen die diesen Datensatz verwenden.") #                           | text                        |                                                                      | extended |              | Liste mit URLs von Portalen die diesen Datensatz verwenden.
-    fk_geobasisdaten_sammlung_bundesrecht = models.TextField(db_column='fk_geobasisdaten_sammlung_bundesrecht') # | text                        |                                                                      | extended |              | 
-    fk_geocat = models.TextField(db_column='fk_geocat', help_text="referencing regular grid raster extent") #                             | text                        |                                                                      | extended |              | referencing regular grid raster extent
-    fk_datasource_id = models.TextField(db_column='fk_datasource_id') #                      | text                        |                                                                      | extended |              | 
-    fk_contactorganisation_id = models.IntegerField(db_column='fk_contactorganisation_id') #             | integer                     |                                                                      | plain    |              | 
-    comment = models.TextField(db_column='comment') #                               | text                        | default ''::text                                                     | extended |              | 
-    staging = models.TextField(db_column='staging', default='test') #                               | text                        | default 'test'::text                                                 | extended |              | 
-    bodsearch = models.BooleanField(db_column='bodsearch', help_text="bodsearch true/false set true if layer should be visible in chsdi layers, feature, bodsearch.") #                             | boolean                     | not null default false                                               | plain    |              | bodsearch true/false set true if layer should be visible in chsdi layers, feature, bodsearch.
-    bgdi_id = models.IntegerField(db_column='bgdi_id') #                               | integer                     | not null default nextval('dataset_and_groups_bgdi_id_seq'::regclass) | plain    |              | 
-    download = models.BooleanField(db_column='download', default=False, help_text="chargeable true/false if layer wmts access is chargeable or not") #                              | boolean                     | not null default false                                               | plain    |              | chargeable true/false if layer wmts access is chargeable or not
-    bgdi_modified = models.DateTimeField(db_column='bgdi_modified', auto_now=True) #                         | timestamp without time zone |                                                                      | plain    |              | 
-    bgdi_created = models.DateTimeField(db_column='bgdi_created', auto_now_add=True) #                          | timestamp without time zone |                                                                      | plain    |              | 
-    bgdi_modified_by = models.CharField(max_length=50, db_column='bgdi_modified_by') #                      | character varying(50)       |                                                                      | extended |              | 
-    bgdi_created_by = models.CharField(max_length=50, db_column='bgdi_created_by') #                       | character varying(50)       |                                                                      | extended |              | 
-    ows_keywordlist_de = models.TextField(db_column='ows_keywordlist_de') #                    | text                        |                                                                      | extended |              | 
-    ows_keywordlist_fr = models.TextField(db_column='ows_keywordlist_fr') #                    | text                        |                                                                      | extended |              | 
-    ows_keywordlist_it = models.TextField(db_column='ows_keywordlist_it') #                    | text                        |                                                                      | extended |              | 
-    ows_keywordlist_en = models.TextField(db_column='ows_keywordlist_en') #                    | text                        |                                                                      | extended |              | 
-    ows_keywordlist_rm = models.TextField(db_column='ows_keywordlist_rm') #                    | text                        |                                                                      | extended |              | 
-    chargeable = models.BooleanField(db_column='chargeable', default=False) #                            | boolean                     | not null default false                                               | plain    |              |
-
-    class Meta:
-        managed = False
-        db_table = 'dataset'
-
-
-class LayersJS(models.Model):
-    # Demonstrate how to access Table in different schema
-
-    bgdi_id = models.IntegerField(db_column="bgdi_id", primary_key=True) #             | integer                     | not null default nextval('layers_js_bgdi_id_seq'::regclass) | plain    |              | 
-    fk_parent_layer = models.TextField(db_column="fk_parent_layer") #     | text                        |                                                             | extended |              | 
-    pk_layer = models.TextField(db_column="pk_layer") #            | text                        | not null                                                    | extended |              | 
-    fk_id_dataset = models.TextField(db_column="fk_id_dataset") #       | text                        |                                                             | extended |              | 
-    LAYERTYPE_AGGREGATE = 'aggregate'
-    LAYERTYPE_GEOJSON = 'geojson'
-    LAYERTYPE_WMS = 'wms'
-    LAYERTYPE_WMTS = 'wmts'
-    LAYERTYPE_CHOICES = (
-        (LAYERTYPE_AGGREGATE, 'aggregate'),
-        (LAYERTYPE_GEOJSON, 'geojson'),
-        (LAYERTYPE_WMS, 'wms'),
-        (LAYERTYPE_WMTS, 'wmts')
+    FORMAT_PNG = 'png'
+    FORMAT_JPEG = 'jpeg'
+    FORMAT_CHOICES = (
+        (FORMAT_PNG, 'png'),
+        (FORMAT_JPEG, 'jpeg')
     )
-    layertype = models.CharField(choices=LAYERTYPE_CHOICES, max_length=50, db_column="layertype") #           | text                        | not null                                                    | extended |              | 
-    opacity = models.FloatField(db_column="opacity") #             | double precision            |                                                             | plain    |              | 
-    minresolution = models.FloatField(db_column="minresolution") #       | double precision            |                                                             | plain    |              | 
-    maxresolution = models.FloatField(db_column="maxresolution") #       | double precision            |                                                             | plain    |              | 
-    image_format = models.TextField(db_column="image_format") #        | text                        |                                                             | extended |              | 
-    wms_layers = models.TextField(db_column="wms_layers") #          | text                        |                                                             | extended |              | 
-    fk_wms_metadata = models.TextField(db_column="fk_wms_metadata") #     | text                        |                                                             | extended |              | 
-    backgroundlayer = models.BooleanField(db_column="backgroundlayer") #     | boolean                     | not null default false                                      | plain    |              | 
-    searchable = models.BooleanField(db_column="searchable") #          | boolean                     | not null default false                                      | plain    |              | 
-    timeenabled = models.BooleanField(db_column="timeenabled") #         | boolean                     | not null default false                                      | plain    |              | 
-    haslegend = models.BooleanField(db_column="haslegend") #           | boolean                     | not null default true                                       | plain    |              | 
-    singletile = models.BooleanField(db_column="singletile") #          | boolean                     | not null default true                                       | plain    |              | 
-    bgdi_modified = models.DateTimeField(db_column="bgdi_modified", auto_now=True) #       | timestamp without time zone |                                                             | plain    |              | 
-    bgdi_created = models.DateTimeField(db_column="bgdi_created", auto_now_add=True) #        | timestamp without time zone |                                                             | plain    |              | 
-    bgdi_modified_by = models.CharField(max_length=50, db_column="bgdi_modified_by") #    | character varying(50)       |                                                             | extended |              | 
-    bgdi_created_by = models.CharField(max_length=50, db_column="bgdi_created_by") #     | character varying(50)       |                                                             | extended |              | 
-    highlightable = models.BooleanField(db_column="highlightable") #       | boolean                     | default true                                                | plain    |              | 
-    time_get_parameter = models.TextField(db_column="time_get_parameter") #  | text                        |                                                             | extended |              | time enabled wms layers                                                     +
-    #                            |                                                             |          |              | name of the get parameter in the time enabled wms get map query
-    time_format = models.TextField(db_column="time_format") #         | text                        |                                                             | extended |              | time enabled wms layers                                                     +
-    #                            |                                                             |          |              | pattern / format of the time dimension in the time enabled wms get map query+
-    #                            |                                                             |          |              |                                                                             +
-    #                            |                                                             |          |              | p.e.                                                                        +
-    #                            |                                                             |          |              | YYYY                                                                        +
-    #                            |                                                             |          |              | YYYY-MM                                                                     +
-    #                            |                                                             |          |              | YYYY-MM-DD
-    time_behaviour = models.TextField(db_column="time_behaviour") #      | text                        | not null default 'last'::text                               | extended |              | 
-    wms_gutter = models.IntegerField(db_column="wms_gutter") #          | integer                     |                                                             | plain    |              | 
-    geojson_url_de = models.TextField(db_column="geojson_url_de") #      | text                        |                                                             | extended |              | 
-    geojson_url_fr = models.TextField(db_column="geojson_url_fr") #      | text                        |                                                             | extended |              | 
-    geojson_url_it = models.TextField(db_column="geojson_url_it") #      | text                        |                                                             | extended |              | 
-    geojson_url_en = models.TextField(db_column="geojson_url_en") #      | text                        |                                                             | extended |              | 
-    geojson_url_rm = models.TextField(db_column="geojson_url_rm") #      | text                        |                                                             | extended |              | 
-    geojson_update_delay = models.IntegerField(db_column="geojson_update_delay") #| integer                     |                                                             | plain    |              | geoJSON automatic update interval, in milliseconds
-    tooltip = models.BooleanField(db_column="tooltip") #             | boolean                     | not null default false                                      | plain    |              | 
-    shop_option_arr = models.TextField(db_column="shop_option_arr") #     | text[]                      |                                                             | extended |              | Contains a list of possible selection methods for purchase
-    srid = models.CharField(max_length=40, default="2056", db_column="srid") #                | text                        | not null default (2056)::text                               | extended |              | 
-    fk_config3d = models.TextField(db_column="fk_config3d") #         | text                        |                                                             | extended |              | 
-    extent = models.FloatField(db_column="extent") #              | double precision[]          |                                                             | extended |              | 
-
-    class Meta:
-        managed = False
-        db_table = 'layers_js'
+    image_type = models.CharField(max_length=10, choices=FORMAT_CHOICES, default=FORMAT_PNG)
+    timestamp = models.DateTimeField(default=timezone.now)
+    cache_ttl = models.PositiveIntegerField(default=1800, help_text="Cache 'time to live'")
+    resolution_min = models.DecimalField(max_digits=7, decimal_places=2, default=4000.0)
+    resolution_max = models.DecimalField(max_digits=7, decimal_places=2, default=0.25)
+    published = models.BooleanField(default=False)
+    publication_service = models.ForeignKey('publication.WMTS', null=True, blank=True, on_delete=models.SET_NULL)
 
 
-class LayersJSView(models.Model):
+class WMS(models.Model):
 
+    created = models.DateTimeField(default=timezone.now)
+    modified = models.DateTimeField(default=timezone.now)
+    dataset = models.ForeignKey('layers.Dataset', on_delete=models.CASCADE)
 
-    bgdi_id = models.IntegerField(db_column="bgdi_id", primary_key=True)  #                   | integer            |           | plain    |              | 
-    layer_id = models.TextField(db_column="layer_id")  #                  | text               |           | extended |              | 
-    bod_layer_id = models.TextField(db_column="bod_layer_id")  #              | text               |           | extended |              | 
-    topics = models.TextField(db_column="topics")  #                    | text               |           | extended |              | 
-    chargeable = models.BooleanField(db_column="chargeable")  #                | boolean            |           | plain    |              | 
-    staging = models.TextField(db_column="staging")  #                   | text               |           | extended |              | 
-    server_layername = models.TextField(db_column="server_layername")  #          | text               |           | extended |              | 
-    attribution = models.TextField(db_column="attribution")  #               | text               |           | extended |              | 
-    layertype = models.TextField(db_column="layertype")  #                 | text               |           | extended |              | 
-    opacity = models.FloatField(db_column="opacity")  #                   | double precision   |           | plain    |              | 
-    minresolution = models.FloatField(db_column="minresolution")  #             | double precision   |           | plain    |              | 
-    maxresolution = models.FloatField(db_column="maxresolution")  #             | double precision   |           | plain    |              | 
-    extent = models.FloatField(db_column="extent")  #                    | double precision[] |           | extended |              | 
-    backgroundlayer = models.BooleanField(db_column="backgroundlayer")  #           | boolean            |           | plain    |              | 
-    tooltip = models.BooleanField(db_column="tooltip")  #                   | boolean            |           | plain    |              | 
-    searchable = models.BooleanField(db_column="searchable")  #                | boolean            |           | plain    |              | 
-    timeenabled = models.BooleanField(db_column="timeenabled")  #               | boolean            |           | plain    |              | 
-    haslegend = models.BooleanField(db_column="haslegend")  #                 | boolean            |           | plain    |              | 
-    singletile = models.BooleanField(db_column="singletile")  #                | boolean            |           | plain    |              | 
-    highlightable = models.BooleanField(db_column="highlightable")  #             | boolean            |           | plain    |              | 
-    wms_layers = models.TextField(db_column="wms_layers")  #                | text               |           | extended |              | 
-    time_behaviour = models.TextField(db_column="time_behaviour")  #            | text               |           | extended |              | 
-    image_format = models.TextField(db_column="image_format")  #              | text               |           | extended |              | 
-    tilematrix_resolution_max = models.FloatField(db_column="tilematrix_resolution_max")  # | double precision   |           | plain    |              | 
-    timestamps = models.TextField(db_column="timestamps")  #                | text[]             |           | extended |              | 
-    parentlayerid = models.TextField(db_column="parentlayerid")  #             | text               |           | extended |              | 
-    sublayersids = models.TextField(db_column="sublayersids")  #              | text[]             |           | extended |              | 
-    time_get_parameter = models.TextField(db_column="time_get_parameter")  #        | text               |           | extended |              | 
-    time_format = models.TextField(db_column="time_format")  #               | text               |           | extended |              | 
-    wms_gutter = models.IntegerField(db_column="wms_gutter")  #                | integer            |           | plain    |              | 
-    sphinx_index = models.TextField(db_column="sphinx_index")  #              | text               |           | extended |              | 
-    geojson_url_de = models.TextField(db_column="geojson_url_de")  #            | text               |           | extended |              | 
-    geojson_url_fr = models.TextField(db_column="geojson_url_fr")  #            | text               |           | extended |              | 
-    geojson_url_it = models.TextField(db_column="geojson_url_it")  #            | text               |           | extended |              | 
-    geojson_url_en = models.TextField(db_column="geojson_url_en")  #            | text               |           | extended |              | 
-    geojson_url_rm = models.TextField(db_column="geojson_url_rm")  #            | text               |           | extended |              | 
-    geojson_update_delay = models.IntegerField(db_column="geojson_update_delay")  #      | integer            |           | plain    |              | 
-    shop_option_arr = models.TextField(db_column="shop_option_arr")  #           | text[]             |           | extended |              | 
-    srid = models.TextField(db_column="srid")  #                      | text               |           | extended |              | 
-    fk_config3d = models.TextField(db_column="fk_config3d")  #               | text               |           | extended |              | 
-                         
-    class Meta:
-        managed = False
-        db_table = 'view_layers_js'
+    timestamp = models.DateTimeField(default=timezone.now)
+    publication_services = models.ManyToManyField('publication.WMS')
+
+    mapfile = models.TextField()
+    mapfile_json = JSONField(blank=True)

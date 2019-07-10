@@ -1,47 +1,80 @@
+from django import forms
 from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import mark_safe
+
+from django_ace import AceWidget
+
+from layers.models import Dataset, Tileset, WMS
+from translation.models import Translation
 
 
-from .models import Dataset, LayersJS, LayersJSView, Tileset
-# Register your models here.
-
-class EditableFieldsOnlyMixin(object):
-    def get_readonly_fields(self, request, obj=None):
-        editable_fields = getattr(self, 'editable_fields', [])
-
-        return [f.name for f in self.model._meta.fields if not f.name in editable_fields]
+class TilesetInline(admin.StackedInline):
+    model = Tileset
+    readonly_fields = ('created', 'modified')
+    extra = 0
 
 
-@admin.register(Tileset)
-class TilesetAdmin(admin.ModelAdmin):
+class WMSForm(forms.ModelForm):
 
-    list_display = ('fk_dataset_id', 'published', 'timestamp', 'bgdi_modified')
-    list_filter = ('published', 'timestamp',)
-    search_fields = ('fk_dataset_id',)
+    mapfile = forms.CharField(widget=AceWidget(
+        mode='mapfile',
+        width="1000px", 
+        height="500px",
+    ))
+
+    class Meta:
+        model = WMS
+        fields = ['publication_services', 'mapfile', 'mapfile_json', 'dataset']
+
+
+@admin.register(WMS)
+class WMSAdmin(admin.ModelAdmin):
+    list_display = ('dataset', 'modified', 'publication_services_str')
+    search_fields = ('dataset__layer_name',)
+    form = WMSForm
+    autocomplete_fields = ['dataset']
+    readonly_fields = ['mapfile_json']
+
+    def publication_services_str(self, obj):
+        return ','.join(obj.publication_services.all().values_list('name', flat=True))
+    publication_services_str.short_description = "Publication Services"
+
+
+
+class WMSInline(admin.StackedInline):
+    model = WMS
+    form = WMSForm
+    readonly_fields = ('mapfile_json',)
+    extra = 1
+
+
+
 
 
 @admin.register(Dataset)
-class DatasetAdmin(EditableFieldsOnlyMixin, admin.ModelAdmin):
+class DatasetAdmin(admin.ModelAdmin):
 
-    list_display = ('id_dataset', 'frm_bezeichnung_de', )
-    search_fields = ('id_dataset', )
-    list_filter = ('staging', 'chargeable',)
-    # readonly_fields = '__all__'
+    list_display = ('layer_name', 'abstract' , 'timing')
+    search_fields = ('layer_name', )
+    list_filter = ('chargeable',)
 
-
-@admin.register(LayersJS)
-class LayersJSAdmin(EditableFieldsOnlyMixin, admin.ModelAdmin):
-
-    list_display = ('pk_layer', 'layertype', 'image_format')
-    # search_fields = ('id_dataset', )
-    list_filter = ('layertype','image_format')
-    # readonly_fields = '__all__'
-    editable_fields = ('layertype', )
+    inlines = [TilesetInline, WMSInline]
+    readonly_fields = ('abstract_link', 'description_link')
+    fields = ('layer_name', 'abstract_link', 'description_link', 'timing')
 
 
-@admin.register(LayersJSView)
-class LayersJSViewAdmin(EditableFieldsOnlyMixin, admin.ModelAdmin):
 
-    list_display = ('layer_id', 'layertype', 'image_format')
-    # search_fields = ('id_dataset', )
-    list_filter = ('layertype','image_format')
-    # readonly_fields = '__all__'
+    def abstract_link(self, obj):
+        url = reverse("admin:translation_translationkey_change", args=(obj.abstract_id,))
+        return mark_safe("<a target=_blank href='{}'>{}</a>".format(url, obj.abstract_id))
+    abstract_link.allow_tags = True
+    abstract_link.short_description = "Abstract"
+
+    def description_link(self, obj):
+        url = reverse("admin:translation_translationkey_change", args=(obj.description_id,))
+        return mark_safe("<a target=_blank href='{}'>{}</a>".format(url, obj.description_id))
+    description_link.allow_tags = True
+    description_link.short_description = "Description"
+
+

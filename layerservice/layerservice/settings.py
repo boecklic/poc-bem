@@ -37,7 +37,15 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'layers.apps.LayersConfig'
+    'django_extensions',
+    'mptt',                 # tree models in django
+    'drf_yasg',             # Yet another swagger generator
+    'django_ace',           # ace editor in django admin
+    'bod_master.apps.BodMasterConfig',
+    'layers.apps.LayersConfig',
+    'translation.apps.TranslationConfig',
+    'catalog.apps.CatalogConfig',
+    'publication.apps.PublicationConfig'
 ]
 
 MIDDLEWARE = [
@@ -90,7 +98,7 @@ DATABASES = {
     're3': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'OPTIONS': {
-            'options': '-c search_path=re3,public'
+            'options': '-c search_path=public,re3'
         },
         'NAME': 'bod_master',
         'USER': 'bod',
@@ -124,12 +132,28 @@ AUTH_PASSWORD_VALIDATORS = [
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'json': {
+            'format': '{levelname} {message}',
+            'style': '{'
+        }
+    },
     'handlers': {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': '/home/ltboc/src/poc-layerservice/layerservice/debug.log',
         },
+        'db': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': '/home/ltboc/src/poc-layerservice/layerservice/db.log'
+        },
+        'json': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'json'
+        }
     },
     'loggers': {
         'django': {
@@ -137,6 +161,16 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        'django.db.backends': {
+            'handlers': ['db'],
+            'level': 'DEBUG',
+            'propagate': True
+        },
+        'default': {
+            'handlers': ['file', 'json'],
+            'level': 'DEBUG',
+            'propagate': True
+        }
     },
 }
 
@@ -167,5 +201,7 @@ REST_FRAMEWORK = {
     # or allow read-only access for unauthenticated users.
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
-    ]
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 100
 }

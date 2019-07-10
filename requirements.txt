@@ -6,3 +6,8 @@ pkg-resources==0.0.0
 psycopg2==2.8.2
 pytz==2019.1
 sqlparse==0.3.0
+django-reversion==3.0.3
+django-extensions==2.1.6
+python-dateutil==2.8.0
+django-mptt==0.10.0
+git+https://github.com/boecklic/django-ace.git

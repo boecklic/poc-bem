@@ -2,3 +2,6 @@
 *.sublime-*
 venv/
 *.tar*
+__pycache__
+static/
+*.log

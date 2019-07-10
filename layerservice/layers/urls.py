@@ -1,7 +1,7 @@
 from rest_framework import routers
 
-from .serializers import DatasetViewSet, LayersJSViewViewSet
+from layers.rest import DatasetViewSet
 
-api_router = routers.DefaultRouter()
-api_router.register(r'dataset', DatasetViewSet)
-api_router.register(r'config', LayersJSViewViewSet, basename='server_layername')
+api_router = routers.SimpleRouter()
+api_router.register(r'layers/datasets', DatasetViewSet)
+# api_router.register(r'catalogentries', CatalogEntryViewSet)
