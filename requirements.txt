@@ -13,3 +13,5 @@ django-mptt==0.10.0
 git+https://github.com/boecklic/django-ace.git
 mappyfile==0.8.2
 django-prettyjson==0.4.1
+drf-yasg=1.16.1
+packaging==19.1
