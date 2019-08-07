@@ -34,34 +34,34 @@ class Dataset(models.Model):
     # id colum is automatically added
     # id = models.TextField(db_column='id') #                                    | integer                     | not null default nextval('dataset_and_groups_id_seq'::regclass)      | plain    |              | 
     parent_id = models.TextField(db_column='parent_id', help_text="Technische Layer ID der Gruppe zu welcher eine oder mehrere datasets gehören, Einschränkung ein dataset kann zu maximal einer gruppe gehören.") #                             | text                        |                                                                      | extended |              | Technische Layer ID der Gruppe zu welcher eine oder mehrere datasets gehören, Einschränkung ein dataset kann zu maximal einer gruppe gehören.
-    id_dataset = models.TextField(db_column='id_dataset', null=False, help_text="Eindeutiger Name des datasets oder layer entsprechend Namenskonvention Layernamen, entspricht dem layername. ") #                            | text                        | not null                                                             | extended |              | Eindeutiger Name des datasets oder layer entsprechend Namenskonvention Layernamen, entspricht dem layername. 
-    frm_bezeichnung_de = models.TextField(db_column='frm_bezeichnung_de') #                    | text                        |                                                                      | extended |              | 
-    frm_bezeichnung_fr = models.TextField(db_column='frm_bezeichnung_fr') #                    | text                        |                                                                      | extended |              | 
-    frm_bezeichnung_it = models.TextField(db_column='frm_bezeichnung_it') #                    | text                        |                                                                      | extended |              | 
-    frm_bezeichnung_en = models.TextField(db_column='frm_bezeichnung_en') #                    | text                        |                                                                      | extended |              | 
-    frm_bezeichnung_rm = models.TextField(db_column='frm_bezeichnung_rm') #                    | text                        |                                                                      | extended |              | 
-    frm_abstract_de = models.TextField(db_column='frm_abstract_de') #                       | text                        |                                                                      | extended |              | 
-    frm_abstract_fr = models.TextField(db_column='frm_abstract_fr') #                       | text                        |                                                                      | extended |              | 
-    frm_abstract_it = models.TextField(db_column='frm_abstract_it') #                       | text                        |                                                                      | extended |              | 
-    frm_abstract_en = models.TextField(db_column='frm_abstract_en') #                       | text                        |                                                                      | extended |              | 
-    frm_abstract_rm = models.TextField(db_column='frm_abstract_rm') #                       | text                        |                                                                      | extended |              | 
-    kurzbezeichnung_de = models.TextField(db_column='kurzbezeichnung_de') #                    | text                        |                                                                      | extended |              | 
-    kurzbezeichnung_fr = models.TextField(db_column='kurzbezeichnung_fr') #                    | text                        |                                                                      | extended |              | 
-    kurzbezeichnung_it = models.TextField(db_column='kurzbezeichnung_it') #                    | text                        |                                                                      | extended |              | 
-    kurzbezeichnung_en = models.TextField(db_column='kurzbezeichnung_en') #                    | text                        |                                                                      | extended |              | 
-    kurzbezeichnung_rm = models.TextField(db_column='kurzbezeichnung_rm') #                    | text                        |                                                                      | extended |              | 
+    id_dataset = models.TextField(unique=True, db_column='id_dataset', null=False, help_text="Eindeutiger Name des datasets oder layer entsprechend Namenskonvention Layernamen, entspricht dem layername. ") #                            | text                        | not null                                                             | extended |              | Eindeutiger Name des datasets oder layer entsprechend Namenskonvention Layernamen, entspricht dem layername. 
+    # frm_bezeichnung_de = models.TextField(db_column='frm_bezeichnung_de') #                    | text                        |                                                                      | extended |              | 
+    # frm_bezeichnung_fr = models.TextField(db_column='frm_bezeichnung_fr') #                    | text                        |                                                                      | extended |              | 
+    # frm_bezeichnung_it = models.TextField(db_column='frm_bezeichnung_it') #                    | text                        |                                                                      | extended |              | 
+    # frm_bezeichnung_en = models.TextField(db_column='frm_bezeichnung_en') #                    | text                        |                                                                      | extended |              | 
+    # frm_bezeichnung_rm = models.TextField(db_column='frm_bezeichnung_rm') #                    | text                        |                                                                      | extended |              | 
+    # frm_abstract_de = models.TextField(db_column='frm_abstract_de') #                       | text                        |                                                                      | extended |              | 
+    # frm_abstract_fr = models.TextField(db_column='frm_abstract_fr') #                       | text                        |                                                                      | extended |              | 
+    # frm_abstract_it = models.TextField(db_column='frm_abstract_it') #                       | text                        |                                                                      | extended |              | 
+    # frm_abstract_en = models.TextField(db_column='frm_abstract_en') #                       | text                        |                                                                      | extended |              | 
+    # frm_abstract_rm = models.TextField(db_column='frm_abstract_rm') #                       | text                        |                                                                      | extended |              | 
+    # kurzbezeichnung_de = models.TextField(db_column='kurzbezeichnung_de') #                    | text                        |                                                                      | extended |              | 
+    # kurzbezeichnung_fr = models.TextField(db_column='kurzbezeichnung_fr') #                    | text                        |                                                                      | extended |              | 
+    # kurzbezeichnung_it = models.TextField(db_column='kurzbezeichnung_it') #                    | text                        |                                                                      | extended |              | 
+    # kurzbezeichnung_en = models.TextField(db_column='kurzbezeichnung_en') #                    | text                        |                                                                      | extended |              | 
+    # kurzbezeichnung_rm = models.TextField(db_column='kurzbezeichnung_rm') #                    | text                        |                                                                      | extended |              | 
     frm_nachfuehrung_intervall = models.TextField(db_column='frm_nachfuehrung_intervall', default='andere') #            | text                        | not null default 'andere'::text                                      | extended |              | 
     frm_scale_limit = models.TextField(db_column='frm_scale_limit', default='-') #                       | text                        | not null default '-'::text                                           | extended |              | 
     ms_minscaledenom = models.IntegerField(db_column='ms_minscaledenom') #                      | integer                     |                                                                      | plain    |              | wms-bgdi / Geoadmin Spezifische MapFileParameter                                                                                             +
     ms_maxscaledenom = models.IntegerField(db_column='ms_maxscaledenom') #                      | integer                     |                                                                      | plain    |              | wms-bgdi / Geoadmin Spezifische MapFileParameter                                                                                             +
     ms_labelminscaledenom = models.IntegerField(db_column='ms_labelminscaledenom', default=-1) #                 | integer                     | default '-1'::integer                                                | plain    |              | wms-bgdi / Geoadmin Spezifische MapFileParameter                                                                                             +
     ms_labelmaxscaledenom = models.IntegerField(db_column='ms_labelmaxscaledenom', default=-1) #                 | integer                     | default '-1'::integer                                                | plain    |              | wms-bgdi / Geoadmin Spezifische MapFileParameter                                                                                             +
-    frm_url = models.TextField(db_column='frm_url', help_text="Informations URL aus dem Datenintegrations Formular") #                               | text                        |                                                                      | extended |              | Informations URL aus dem Datenintegrations Formular
-    b1_nutzungsbedingungen = models.TextField(db_column='b1_nutzungsbedingungen', help_text="URL zu den Nutzungsbedingungen") #                | text                        |                                                                      | extended |              | URL zu den Nutzungsbedingungen
+    # frm_url = models.TextField(db_column='frm_url', help_text="Informations URL aus dem Datenintegrations Formular") #                               | text                        |                                                                      | extended |              | Informations URL aus dem Datenintegrations Formular
+    # b1_nutzungsbedingungen = models.TextField(db_column='b1_nutzungsbedingungen', help_text="URL zu den Nutzungsbedingungen") #                | text                        |                                                                      | extended |              | URL zu den Nutzungsbedingungen
     b1_urheberrecht = models.TextField(db_column='b1_urheberrecht') #                       | text                        |                                                                      | extended |              | 
-    url_download = models.TextField(db_column='url_download', help_text="URL zum Download Dienst") #                          | text                        |                                                                      | extended |              | URL zum Download Dienst
-    url_portale = models.TextField(db_column='url_portale', help_text="Liste mit URLs von Portalen die diesen Datensatz verwenden.") #                           | text                        |                                                                      | extended |              | Liste mit URLs von Portalen die diesen Datensatz verwenden.
-    fk_geobasisdaten_sammlung_bundesrecht = models.TextField(db_column='fk_geobasisdaten_sammlung_bundesrecht') # | text                        |                                                                      | extended |              | 
+    # url_download = models.TextField(db_column='url_download', help_text="URL zum Download Dienst") #                          | text                        |                                                                      | extended |              | URL zum Download Dienst
+    # url_portale = models.TextField(db_column='url_portale', help_text="Liste mit URLs von Portalen die diesen Datensatz verwenden.") #                           | text                        |                                                                      | extended |              | Liste mit URLs von Portalen die diesen Datensatz verwenden.
+    # fk_geobasisdaten_sammlung_bundesrecht = models.TextField(db_column='fk_geobasisdaten_sammlung_bundesrecht') # | text                        |                                                                      | extended |              | 
     fk_geocat = models.TextField(db_column='fk_geocat', help_text="referencing regular grid raster extent") #                             | text                        |                                                                      | extended |              | referencing regular grid raster extent
     fk_datasource_id = models.TextField(db_column='fk_datasource_id') #                      | text                        |                                                                      | extended |              | 
     fk_contactorganisation_id = models.IntegerField(db_column='fk_contactorganisation_id') #             | integer                     |                                                                      | plain    |              | 
@@ -81,9 +81,57 @@ class Dataset(models.Model):
     ows_keywordlist_rm = models.TextField(db_column='ows_keywordlist_rm') #                    | text                        |                                                                      | extended |              | 
     chargeable = models.BooleanField(db_column='chargeable', default=False) #                            | boolean                     | not null default false                                               | plain    |              |
 
+    def __str__(self):
+        return self.id_dataset
+
     class Meta:
         managed = False
         db_table = 'dataset'
+
+
+class GeocatPublish(models.Model):
+    fk_id_dataset = models.OneToOneField('Dataset',
+        db_column='fk_id_dataset',
+        primary_key=True,
+        to_field='id_dataset',
+        on_delete=models.CASCADE
+    )  #          | text                        | not null
+    bezeichnung_de = models.TextField()  #         | text                        | 
+    bezeichnung_fr = models.TextField()  #         | text                        | 
+    bezeichnung_it = models.TextField()  #         | text                        | 
+    bezeichnung_en = models.TextField()  #         | text                        | 
+    bezeichnung_rm = models.TextField()  #         | text                        | 
+    alternativtitel_de = models.TextField()  #     | text                        | 
+    alternativtitel_fr = models.TextField()  #     | text                        | 
+    alternativtitel_it = models.TextField()  #     | text                        | 
+    alternativtitel_en = models.TextField()  #     | text                        | 
+    alternativtitel_rm = models.TextField()  #     | text                        | 
+    abstract_de = models.TextField()  #            | text                        | 
+    abstract_fr = models.TextField()  #            | text                        | 
+    abstract_it = models.TextField()  #            | text                        | 
+    abstract_en = models.TextField()  #            | text                        | 
+    abstract_rm = models.TextField()  #            | text                        | 
+    nutzungsbedingungen_de = models.CharField(max_length=300)  # | character varying(300)      | 
+    nutzungsbedingungen_fr = models.CharField(max_length=300)  # | character varying(300)      | 
+    nutzungsbedingungen_it = models.CharField(max_length=300)  # | character varying(300)      | 
+    nutzungsbedingungen_en = models.CharField(max_length=300)  # | character varying(300)      | 
+    nutzungsbedingungen_rm = models.CharField(max_length=300)  # | character varying(300)      | 
+    fk_geobasisdatensatz = models.TextField()  #   | text                        | 
+    url_infos = models.TextField()  #              | text                        | 
+    url_download = models.TextField()  #           | text                        | 
+    url_portal = models.TextField()  #             | text                        | 
+    bgdi_modified = models.DateTimeField()  #          | timestamp without time zone | 
+    bgdi_created = models.DateTimeField()  #           | timestamp without time zone | 
+    bgdi_modified_by = models.CharField(max_length=50)  #       | character varying(50)       | 
+    bgdi_created_by = models.CharField(max_length=50)  #        | character varying(50)       | 
+    bgdi_id = models.IntegerField()  #                | integer                     | not null default nextval('geocat_publish_bgdi_id_seq'::regclass)
+
+    def __str__(self):
+        return self.fk_id_dataset.id_dataset
+
+    class Meta:
+        managed = False
+        db_table = 'geocat_publish'
 
 
 class LayersJS(models.Model):

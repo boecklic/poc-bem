@@ -45,6 +45,11 @@ class Command(BaseCommand):
             action='store_true',
             help='Sync topics'
         )
+        parser.add_argument(
+            '--datasets',
+            action='store_true',
+            help='Sync datasets'
+        )
 
     def handle(self, *args, **options):
         if options['topics']:
@@ -118,85 +123,87 @@ class Command(BaseCommand):
 
                 topic.save()
 
-        return
-        for bod_master_dataset in bod_master_Dataset.objects.all():
-            dataset_id = bod_master_dataset.id_dataset
+        if options['datasets']:
+            for bod_master_dataset in bod_master_Dataset.objects.all():
+                dataset_id = bod_master_dataset.id_dataset
 
-            # fetch or create the dataset with this id
-            dataset, created = Dataset.objects.get_or_create(layer_name=dataset_id)
-            if created:
-                print("created new dataset {}".format(dataset_id))
+                # fetch or create the dataset with this id
+                dataset, created = Dataset.objects.get_or_create(layer_name=dataset_id)
+                if created:
+                    print("created new dataset {}".format(dataset_id))
 
-            # ========
-            # Abstract
-            if not dataset.abstract:                
+                # ========
+                # Abstract
+                if not dataset.abstract and hasattr(bod_master_dataset, 'geocatpublish'):                
 
-                # in case abstract_id is none use dataset_id
-                if not bod_master_dataset.kurzbezeichnung_en:
-                    abstract_id = "{}_abstract".format(dataset_id)
+                    # in case abstract_id is none use dataset_id
+                    if not bod_master_dataset.geocatpublish.alternativtitel_en:
+                        abstract_id = "{}_abstract".format(dataset_id)
+                    else:
+                        abstract_id = slugify(bod_master_dataset.geocatpublish.alternativtitel_en[:TRANSLATION_KEY_MAX_LENGTH])
+
+                    while(TranslationKey.objects.filter(id=abstract_id).exists()):
+                        abstract_id = increment_suffix(abstract_id)
                 else:
-                    abstract_id = slugify(bod_master_dataset.kurzbezeichnung_en[:TRANSLATION_KEY_MAX_LENGTH])
+                    abstract_id = dataset.abstract_id
 
-                while(TranslationKey.objects.filter(id=abstract_id).exists()):
-                    abstract_id = increment_suffix(abstract_id)
-            else:
-                abstract_id = dataset.abstract_id
+                if hasattr(bod_master_dataset, 'geocatpublish'):
+                    dataset.abstract = dataset.create_or_update_translations(
+                        abstract_id,
+                        de=bod_master_dataset.geocatpublish.alternativtitel_de,
+                        fr=bod_master_dataset.geocatpublish.alternativtitel_fr,
+                        it=bod_master_dataset.geocatpublish.alternativtitel_it,
+                        en=bod_master_dataset.geocatpublish.alternativtitel_en,
+                        rm=bod_master_dataset.geocatpublish.alternativtitel_rm,
+                    )
 
-            dataset.abstract = dataset.create_or_update_translations(
-                abstract_id,
-                de=bod_master_dataset.kurzbezeichnung_de,
-                fr=bod_master_dataset.kurzbezeichnung_fr,
-                it=bod_master_dataset.kurzbezeichnung_it,
-                en=bod_master_dataset.kurzbezeichnung_en,
-                rm=bod_master_dataset.kurzbezeichnung_rm,
-            )
+                # ===========
+                # Description
+                if not dataset.description and hasattr(bod_master_dataset, 'geocatpublish'):
 
-            # ===========
-            # Description
-            if not dataset.description:
+                    # in case description_id is none use dataset_id
+                    if not bod_master_dataset.geocatpublish.bezeichnung_en:
+                        description_id = "{}_description".format(dataset_id)
+                    else:
+                        description_id = slugify(bod_master_dataset.geocatpublish.bezeichnung_en[:TRANSLATION_KEY_MAX_LENGTH])
 
-                # in case description_id is none use dataset_id
-                if not bod_master_dataset.frm_bezeichnung_en:
-                    description_id = "{}_description".format(dataset_id)
+                    while(TranslationKey.objects.filter(id=description_id).exists()):
+                        description_id = increment_suffix(description_id)
                 else:
-                    description_id = slugify(bod_master_dataset.frm_bezeichnung_en[:TRANSLATION_KEY_MAX_LENGTH])
+                    description_id = dataset.description_id
 
-                while(TranslationKey.objects.filter(id=description_id).exists()):
-                    description_id = increment_suffix(description_id)
-            else:
-                description_id = dataset.description_id
+                if hasattr(bod_master_dataset, 'geocatpublish'):
+                    dataset.description = dataset.create_or_update_translations(
+                        description_id,
+                        de = bod_master_dataset.geocatpublish.bezeichnung_de,
+                        fr = bod_master_dataset.geocatpublish.bezeichnung_fr,
+                        it = bod_master_dataset.geocatpublish.bezeichnung_it,
+                        en = bod_master_dataset.geocatpublish.bezeichnung_en,
+                        rm = bod_master_dataset.geocatpublish.bezeichnung_rm,
+                    )
 
-            dataset.description = dataset.create_or_update_translations(
-                description_id,
-                de = bod_master_dataset.frm_bezeichnung_de,
-                fr = bod_master_dataset.frm_bezeichnung_fr,
-                it = bod_master_dataset.frm_bezeichnung_it,
-                en = bod_master_dataset.frm_bezeichnung_en,
-                rm = bod_master_dataset.frm_bezeichnung_rm,
-            )
+                dataset.chargeable = bod_master_dataset.chargeable
 
-            dataset.chargeable = bod_master_dataset.chargeable
+                dataset.save()
 
-            dataset.save()
+                for bod_master_tileset in bod_master_Tileset.objects.filter(fk_dataset_id=dataset_id):
+                    if  bod_master_tileset.timestamp == 'current':
+                        _timestamp = '9999-01-01'
+                    elif len(bod_master_tileset.timestamp) == 4:
+                        _timestamp = '{}-01-01'.format(bod_master_tileset.timestamp)
+                    else:
+                        _timestamp = bod_master_tileset.timestamp
+                    tz_unaware_timestamp = dateutil.parser.parse(_timestamp)
 
-            for bod_master_tileset in bod_master_Tileset.objects.filter(fk_dataset_id=dataset_id):
-                if  bod_master_tileset.timestamp == 'current':
-                    _timestamp = '9999-01-01'
-                elif len(bod_master_tileset.timestamp) == 4:
-                    _timestamp = '{}-01-01'.format(bod_master_tileset.timestamp)
-                else:
-                    _timestamp = bod_master_tileset.timestamp
-                tz_unaware_timestamp = dateutil.parser.parse(_timestamp)
-
-                timestamp = timezone.make_aware(tz_unaware_timestamp) if tz_unaware_timestamp else timezone.now()
-                print(bod_master_tileset.timestamp, timestamp)
-                tileset, created = Tileset.objects.get_or_create(
-                    dataset=dataset,
-                    timestamp=timestamp,
-                )
-                tileset.format = bod_master_tileset.format
-                tileset.cache_ttl = bod_master_tileset.cache_ttl
-                tileset.resolution_min = bod_master_tileset.resolution_min
-                tileset.resolution_max = bod_master_tileset.resolution_max
-                tileset.published = bod_master_tileset.published
-                tileset.save()
+                    timestamp = timezone.make_aware(tz_unaware_timestamp) if tz_unaware_timestamp else timezone.now()
+                    print(bod_master_tileset.timestamp, timestamp)
+                    tileset, created = Tileset.objects.get_or_create(
+                        dataset=dataset,
+                        timestamp=timestamp,
+                    )
+                    tileset.format = bod_master_tileset.format
+                    tileset.cache_ttl = bod_master_tileset.cache_ttl
+                    tileset.resolution_min = bod_master_tileset.resolution_min
+                    tileset.resolution_max = bod_master_tileset.resolution_max
+                    tileset.published = bod_master_tileset.published
+                    tileset.save()

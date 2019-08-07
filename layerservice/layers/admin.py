@@ -39,7 +39,7 @@ class MapServerConfigAdmin(admin.ModelAdmin):
     search_fields = ('dataset__layer_name',)
     form = MapServerConfigForm
     autocomplete_fields = ['dataset']
-    readonly_fields = ['mapfile_json']
+    # readonly_fields = ['mapfile_json']
 
     def publication_services_str(self, obj):
         return ','.join(obj.publication_services.all().values_list('name', flat=True))

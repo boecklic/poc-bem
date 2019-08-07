@@ -53,7 +53,7 @@ default_api_router.registry.extend(layers_api_router.registry)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('tst/', include('tst.urls')),
-    re_path('api/v3/doc/swagger(?P<format>\.json|\.yaml)', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    re_path('api/v3/doc/swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('api/v3/doc/swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('api/v3/doc/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     path('api/v3/', include(default_api_router.urls)),

@@ -31,7 +31,7 @@ def validate_iso8601duration(value):
     # here: https://stackoverflow.com/a/32045167
     durex = re.compile(r"^P(?!$)(\d+(?:\.\d+)?Y)?(\d+(?:\.\d+)?M)?(\d+(?:\.\d+)?W)?(\d+(?:\.\d+)?D)?(T(?=\d)(\d+(?:\.\d+)?H)?(\d+(?:\.\d+)?M)?(\d+(?:\.\d+)?S)?)?$")
     match = durex.match(value)
-    print(value,match)
+    # print(value,match)
     if match:
         return value
     else:
@@ -118,6 +118,7 @@ class Dataset(TranslatableMixin, models.Model):
         default='polygon',
         db_index=True
     )
+    
 
     def __str__(self):
         return self.layer_name
@@ -157,6 +158,8 @@ class MapServerConfig(models.Model):
     mapfile = models.TextField()
     mapfile_json = JSONField(blank=True)
 
+    def __str__(self):
+        return self.dataset.layer_name
     
     def clean(self):
         """clean is called during .save() to validate the model fields"""
@@ -167,3 +170,4 @@ class MapServerConfig(models.Model):
         else:
             self.mapfile_json = parsed_mapfile
             self.mapfile_json['metadata']['wms_title'] = self.dataset.layer_name
+            self.mapfile_json['metadata']['wms_timeextent'] = self.dataset.timing

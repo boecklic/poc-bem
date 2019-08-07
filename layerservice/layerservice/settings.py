@@ -83,28 +83,46 @@ WSGI_APPLICATION = 'layerservice.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
+# CREATE USER layerservice WITH PASSWORD 'layerservice';
+# CREATE DATABASE dj_layerservice WITH OWNER layerservice;
+# GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO layerservice;
+
 DATABASES = {
     'default': {
         # 'ENGINE': 'django.db.backends.sqlite3',
         # 'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'bod_master',
-        'USER': 'bod',
-        'PASSWORD': 'bod',
+        'NAME': 'dj_layerservice',
+        'USER': 'layerservice',
+        'PASSWORD': 'layerservice',
         'HOST': 'localhost',
+        'PORT': '5432'
+    },
+    # default config for legacy data
+    're2': {
+        # 'ENGINE': 'django.db.backends.sqlite3',
+        # 'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'bod_master',
+        'USER': 'www-data',
+        'PASSWORD': 'www-data',
+        'HOST': 'pg-0.dev.bgdi.ch',
         'PORT': '5432'
     },
     # Django doesn't support postgres database schemas out of the box,
     # so we create a separate connection per schema
+    # Note: we could use this connection for all legacy models, it's
+    # left here as a reference in case of future needs of this functionality
     're3': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'OPTIONS': {
             'options': '-c search_path=public,re3'
         },
         'NAME': 'bod_master',
-        'USER': 'bod',
-        'PASSWORD': 'bod',
-        'HOST': 'localhost'
+        'USER': 'www-data',
+        'PASSWORD': 'www-data',
+        'HOST': 'pg-0.dev.bgdi.ch',
+        'PORT': '5432'
     },
 }
 

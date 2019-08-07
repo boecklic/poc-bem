@@ -3,7 +3,9 @@ from django.conf.urls import url, include
 from rest_framework import routers, serializers, viewsets
 
 from catalog.models import Topic, CatalogEntry
+# from layers.rest import DatasetSerializer
 from translation.rest import TranslationKeySerializer
+
 
 
 # Serializers define the API representation.
@@ -40,12 +42,23 @@ class TopicViewSet(viewsets.ModelViewSet):
 #             'timestamps',
 #             'bgdi_id'
 #         )
+
+
 class CatalogEntrySerializer(serializers.ModelSerializer):
+    # Create full url instead of bare raw id of related object
     parent = serializers.HyperlinkedRelatedField(
         view_name='catalogentry-detail',
         read_only=True
     )
-    # datasets =
+    datasets = serializers.HyperlinkedRelatedField(
+        view_name='dataset-detail',
+        many=True,
+        read_only=True
+    )
+    topic = serializers.HyperlinkedRelatedField(
+        view_name='topic-detail',
+        read_only=True
+    )
     name = TranslationKeySerializer()
     class Meta:
         model = CatalogEntry
