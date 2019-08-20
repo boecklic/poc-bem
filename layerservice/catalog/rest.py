@@ -4,13 +4,13 @@ from rest_framework import routers, serializers, viewsets
 
 from catalog.models import Topic, CatalogEntry
 # from layers.rest import DatasetSerializer
-from translation.rest import TranslationKeySerializer
+from translation.rest import TranslationSerializer
 
 
 
 # Serializers define the API representation.
 class TopicSerializer(serializers.ModelSerializer):
-    title = TranslationKeySerializer()
+    title = TranslationSerializer()
     class Meta:
         model = Topic
         fields = (
@@ -59,7 +59,7 @@ class CatalogEntrySerializer(serializers.ModelSerializer):
         view_name='topic-detail',
         read_only=True
     )
-    name = TranslationKeySerializer()
+    name = TranslationSerializer()
     class Meta:
         model = CatalogEntry
         fields = (

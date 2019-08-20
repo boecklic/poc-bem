@@ -7,7 +7,7 @@ from django_ace import AceWidget
 from prettyjson import PrettyJSONWidget
 
 
-from layers.models import Dataset, Tileset, MapServerConfig
+from layers.models import Dataset, Tileset, MapServerGroup, MapServerLayer
 from translation.models import Translation
 
 
@@ -17,7 +17,7 @@ class TilesetInline(admin.StackedInline):
     extra = 0
 
 
-class MapServerConfigForm(forms.ModelForm):
+class MapServerLayerForm(forms.ModelForm):
 
     # mapfile = forms.CharField(widget=AceWidget(
     #     mode='mapfile',
@@ -26,59 +26,111 @@ class MapServerConfigForm(forms.ModelForm):
     # ))
 
     class Meta:
-        model = MapServerConfig
-        fields = ['publication_services', 'mapfile', 'mapfile_json', 'dataset']
+        model = MapServerLayer
+        fields = [
+            'mapserver_layer_name',
+            'wms_extent',
+            'wms_enable_request',
+            'units',
+            'status',
+            'mapfile',
+            'mapfile_json',
+        ]
         widgets = {
             'mapfile_json': PrettyJSONWidget(attrs={'initial': 'parsed'}),
         }
 
 
-@admin.register(MapServerConfig)
-class MapServerConfigAdmin(admin.ModelAdmin):
-    list_display = ('dataset', 'modified', 'publication_services_str')
-    search_fields = ('dataset__layer_name',)
-    form = MapServerConfigForm
+@admin.register(MapServerLayer)
+class MapServerLayerAdmin(admin.ModelAdmin):
+    list_display = ('name', 'group_name', 'dataset_name', 'modified')
+    search_fields = ('group__dataset__name',)
+    form = MapServerLayerForm
+    # autocomplete_fields = ['dataset']
+    readonly_fields = ['mapfile']
+
+    def dataset_name(self, obj):
+        return obj.group.dataset.name
+
+    def group_name(self, obj):
+        return obj.group.mapserver_group_name or None
+
+
+class MapServerLayerInline(admin.StackedInline):
+    model = MapServerLayer
+    form = MapServerLayerForm
+    # readonly_fields = ('mapfile_json',)
+    extra = 1
+
+
+@admin.register(MapServerGroup)
+class MapServerGroupAdmin(admin.ModelAdmin):
+    list_display = ('dataset', 'publication_services_str')
+    search_fields = ('dataset__name',)
     autocomplete_fields = ['dataset']
-    # readonly_fields = ['mapfile_json']
+    inlines = [MapServerLayerInline]
 
     def publication_services_str(self, obj):
         return ','.join(obj.publication_services.all().values_list('name', flat=True))
     publication_services_str.short_description = "Publication Services"
 
 
-
-class MapServerConfigInline(admin.StackedInline):
-    model = MapServerConfig
-    form = MapServerConfigForm
-    # readonly_fields = ('mapfile_json',)
-    extra = 0
-
-
-
+def get_translation_pk_for_key(key):
+    try:
+        return Translation.versioned.get(key=key).pk
+    except Exception as e:
+        return None
 
 
 @admin.register(Dataset)
 class DatasetAdmin(admin.ModelAdmin):
 
-    list_display = ('layer_name', 'abstract' , 'timing')
-    search_fields = ('layer_name', )
-    list_filter = ('chargeable',)
+    list_display = ('name', 'abstract_de' , 'timing')
+    search_fields = ('name', )
+    list_filter = ('chargeable', 'srs')
 
-    inlines = [TilesetInline, MapServerConfigInline]
+    inlines = [TilesetInline]
     readonly_fields = ('abstract_link', 'description_link')
-    fields = ('layer_name', 'abstract_link', 'description_link', 'timing')
+    fields = (
+        'name',
+        'abstract_link',
+        'description_link',
+        'timing',
+        'datatype',
+        'srs'
+    )
 
-
+    def abstract_de(self, obj):
+        try:
+            return Translation.versioned.get(key=obj.abstract_key).de
+        except:
+            return None
 
     def abstract_link(self, obj):
-        url = reverse("admin:translation_translationkey_change", args=(obj.abstract_id,))
-        return mark_safe("<a target=_blank href='{}'>{}</a>".format(url, obj.abstract_id))
+        _id = get_translation_pk_for_key(obj.abstract_key)
+        url = reverse("admin:translation_translation_change", args=(_id,))
+        return mark_safe("{}&nbsp;(edit: <a target=_blank href='{}'>{}</a>)".format(
+            self.abstract_de(obj),
+            url,
+            obj.abstract_key
+        ))
     abstract_link.allow_tags = True
     abstract_link.short_description = "Abstract"
 
+    def description_de(self, obj):
+        try:
+            return Translation.versioned.get(key=obj.description_key).de
+        except:
+            return None
+
     def description_link(self, obj):
-        url = reverse("admin:translation_translationkey_change", args=(obj.description_id,))
-        return mark_safe("<a target=_blank href='{}'>{}</a>".format(url, obj.description_id))
+        _id = get_translation_pk_for_key(obj.description_key)
+        url = reverse("admin:translation_translation_change", args=(_id,))
+        return mark_safe("{}&nbsp;(edit: <a target=_blank href='{}'>{}</a>)".format(
+            self.description_de(obj),
+            url,
+            obj.description_key
+        ))
     description_link.allow_tags = True
     description_link.short_description = "Description"
 

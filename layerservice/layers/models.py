@@ -2,16 +2,18 @@ import logging
 import dateutil.parser
 import re
 import json
+import mappyfile
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from django.contrib.postgres.fields import JSONField
+from django.contrib.postgres.fields import JSONField, ArrayField
 
-import mappyfile
 
-from translation.models import TranslationKey, Translation, TranslatableMixin
+# from compositefk.fields import CompositeOneToOneField
+
+from translation.models import Translation
 
 
 
@@ -63,28 +65,30 @@ def validate_timing(value):
             )
 
 
-# @reversion.register()
-class Dataset(TranslatableMixin, models.Model):
+class Dataset(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    layer_name = models.CharField(max_length=512, unique=True)
-    description = models.OneToOneField(
-        'translation.TranslationKey',
+    name = models.CharField(max_length=512, unique=True, db_index=True)
+
+    description = models.ForeignKey(
+        'translation.Translation',
         verbose_name=_('description'),
         on_delete=models.SET_NULL,
         related_name='dataset_description',
         null=True
     )
+
     short_description = models.OneToOneField(
-        'translation.TranslationKey',
+        'translation.Translation',
         verbose_name=_('short_description'),
         on_delete=models.SET_NULL,
         related_name='dataset_short_description',
         null=True
     )
+
     abstract = models.OneToOneField(
-        'translation.TranslationKey',
+        'translation.Translation',
         verbose_name=_('abstract'),
         on_delete=models.SET_NULL,
         related_name='dataset_abstract',
@@ -118,10 +122,20 @@ class Dataset(TranslatableMixin, models.Model):
         default='polygon',
         db_index=True
     )
-    
+
+    srs = models.ForeignKey(
+        'geo.SRS',
+        on_delete=models.SET_NULL,
+        null=True
+    )
+
+    # Todo: Make this FK to db model which is synced with
+    # actual DB
+    db_name = models.CharField(max_length=64, null=True)
 
     def __str__(self):
-        return self.layer_name
+        return self.name
+
 
 class Tileset(models.Model):
 
@@ -146,20 +160,138 @@ class Tileset(models.Model):
     publication_service = models.ForeignKey('publication.WMTS', null=True, blank=True, on_delete=models.SET_NULL)
 
 
-class MapServerConfig(models.Model):
+class MapServerGroup(models.Model):
+    dataset = models.ForeignKey('layers.Dataset', on_delete=models.CASCADE)
+    mapserver_group_name = models.CharField(max_length=512, null=True, blank=True)
+    publication_services = models.ManyToManyField('publication.WMS')
+
+    @property
+    def name(self):
+        return self.mapserver_group_name or self.dataset.name
+
+
+class VersionedManager(models.Manager):
+    # Setting use_for_related_fields to True on the manager will make it
+    # available on all relations that point to the model on which you defined
+    # this manager as the default manager.
+    use_for_related_fields = True
+
+    def get_queryset(self):
+        return super().get_queryset().filter(current=True)
+
+
+
+class MapServerLayerManager(models.Manager):
+
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related('group','group__dataset')
+
+
+class ExtentField(ArrayField):
+
+    def __init__(self, epsg=2056, *args, **kwargs):
+        self.epsg = epsg
+        # We need four coordinates
+        kwargs['size'] = 4
+        # Note: we have to pass the base_field as kwargs param
+        # and NOT as args param, __init__ is called repeately
+        # for ArrayField, the args base_field param is transformed
+        # to a kwargs param after the first iteration and results in a
+        # "got multiple values for argument 'base_field'" error at the
+        # second call
+        kwargs['base_field'] = models.IntegerField()
+        super().__init__(*args, **kwargs)
+
+    def to_python(self, value):
+        extent = super().to_python(value)
+
+        if self.epsg == 2056:
+            if extent[0] < 2100000 or extent[0] > 2850000:
+                raise ValidationError('south west Easting must be between 2100000 and 2850000')
+            if extent[1] < 1050000 or extent[1] > 1400000:
+                raise ValidationError('south west Northing must be between 1050000 and 1400000')
+            if extent[2] < 2100000 or extent[2] > 2850000:
+                raise ValidationError('north east Easting must be between 2100000 and 2850000')
+            if extent[3] < 1050000 or extent[3] > 1400000:
+                raise ValidationError('north east Northing must be between 1050000 and 1400000')
+            if extent[2] < extent[0]:
+                raise ValidationError('eastern x bound ({}) must larger than western x bound ({})'.format(extent[2], extent[0]))
+            if extent[3] < extent[1]:
+                raise ValidationError('eastern y bound ({}) must larger than western y bound ({})'.format(extent[2], extent[0]))
+
+        return extent
+
+
+
+class MapServerLayer(models.Model):
 
     created = models.DateTimeField(default=timezone.now)
     modified = models.DateTimeField(default=timezone.now)
-    dataset = models.ForeignKey('layers.Dataset', on_delete=models.CASCADE)
+    group = models.ForeignKey(
+        'layers.MapServerGroup',
+        on_delete=models.CASCADE
+    )
 
-    timestamp = models.DateTimeField(default=None, null=True, blank=True)
-    publication_services = models.ManyToManyField('publication.WMS')
+    mapserver_layer_name = models.CharField(max_length=512, null=True, blank=True)
 
     mapfile = models.TextField()
     mapfile_json = JSONField(blank=True)
 
+
+
+    UNITS_CHOICE_METERS = 'meters'
+    UNITS_CHOICES = (
+        (UNITS_CHOICE_METERS, _('meters')),
+    )
+    units = models.CharField(
+        max_length=32,
+        choices=UNITS_CHOICES,
+        default=UNITS_CHOICE_METERS
+    )
+
+    template = models.CharField(
+        max_length=512,
+        default='ttt'
+    )
+
+    status = models.BooleanField(default=True)
+    def get_status_display(self):
+        return 'ON' if self.status else 'OFF'
+
+    wms_extent = ExtentField(null=True)
+    wms_enable_request = models.CharField(max_length=128, default='*')
+
+    objects = MapServerLayerManager()
+
+    class Meta:
+        unique_together = (('group', 'mapserver_layer_name'),)
+
+
+    @property
+    def has_siblings(self):
+        return self.group.mapserverlayer_set.all().count() > 1
+    
+
+    @property
+    def name(self):
+        return self.mapserver_layer_name or self.group.dataset.name
+
+    @property
+    def __type__(self):
+        return 'layer'
+
+    @property
+    def metadata(self):
+        dct = {}
+        dct['__type__'] = 'metadata'
+        dct['wms_title'] = self.group.dataset.name
+        dct['wms_extent'] = self.wms_extent
+        dct['wms_enable_request'] = self.wms_enable_request
+        return dct
+    
+
     def __str__(self):
-        return self.dataset.layer_name
+        return self.mapserver_layer_name or self.group.dataset.name
     
     def clean(self):
         """clean is called during .save() to validate the model fields"""
@@ -168,6 +300,10 @@ class MapServerConfig(models.Model):
         except Exception as e:
             raise ValidationError("couldn't parse mapfile content: {}".format(e))
         else:
+            # print(parsed_mapfile)
             self.mapfile_json = parsed_mapfile
-            self.mapfile_json['metadata']['wms_title'] = self.dataset.layer_name
-            self.mapfile_json['metadata']['wms_timeextent'] = self.dataset.timing
+            self.mapfile_json['metadata']['wms_title'] = self.group.dataset.name
+            self.mapfile_json['metadata']['wms_timeextent'] = self.group.dataset.timing
+            self.mapfile_json['type'] = self.group.dataset.datatype.upper()
+            if self.group.dataset.srs:
+                self.mapfile_json['projection'] = ["init={}".format(self.group.dataset.srs.epsg.lower())]

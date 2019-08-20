@@ -1,4 +1,4 @@
-from bod_master.models import (Tileset, Dataset, GeocatPublish)
+from bod_master.models import (Tileset, Dataset, GeocatImport, GeocatPublish)
 from bod_master.models import (LayersJS, LayersJSView, Topic,
     Catalog, XTDatasetCatalog, XTDatasetTopic)
 
@@ -6,6 +6,7 @@ from bod_master.models import (LayersJS, LayersJSView, Topic,
 RE2_MODELS = [
     Tileset,
     Dataset,
+    GeocatImport,
     GeocatPublish
 ]
 

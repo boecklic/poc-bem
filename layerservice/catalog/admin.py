@@ -14,8 +14,8 @@ class CatalogLayerInlineAdmin(admin.TabularInline):
 @admin.register(CatalogEntry)
 class CatalogEntryAdmin(admin.ModelAdmin):
 
-    list_display = ('name', 'parent', 'root', 'topic')
-    search_fields = ('name', )
+    list_display = ('name_de', 'parent', 'root', 'topic')
+    # search_fields = ('name', )
     list_filter = ('topic', )
 
     inlines = [CatalogLayerInlineAdmin]
@@ -26,10 +26,22 @@ class CatalogEntryAdmin(admin.ModelAdmin):
         return obj.get_root()
     root.short_description = "Root Node"
 
+    def name_de(self, obj):
+        try:
+            return Translation.versioned.get(obj.name_key).de
+        except:
+            return None
+
 
 @admin.register(Topic)
 class TopicAdmin(admin.ModelAdmin):
 
-    list_display = ('name', 'staging')
-    search_fields = ('name', )
+    list_display = ('name_de', 'staging')
+    # search_fields = ('name', )
     list_filter = ('staging',)
+
+    def name_de(self, obj):
+        try:
+            return Translation.versioned.get(obj.name_key).de
+        except:
+            return None

@@ -3,7 +3,6 @@ from django.utils.translation import gettext as _
 
 from mptt.models import MPTTModel, TreeForeignKey
 
-from translation.models import TranslatableMixin
 
 # Create your models here.
 
@@ -11,13 +10,15 @@ from translation.models import TranslatableMixin
 class Topic(models.Model):
 
     name = models.CharField(max_length=64, unique=True)
-    title = models.OneToOneField(
-        'translation.TranslationKey',
-        verbose_name=_('title'),
-        on_delete=models.SET_NULL,
-        related_name='catalog_topic_title',
-        null=True
-    )
+    title_key = models.SlugField(null=True)
+    # title = models.OneToOneField(
+    #     'translation.Translation',
+    #     verbose_name=_('title'),
+    #     on_delete=models.SET_NULL,
+    #     related_name='catalog_topic_title',
+    #     to_field='key',
+    #     null=True
+    # )
     STAGING_CHOICE_TEST = 'test'
     STAGING_CHOICE_PROD = 'prod'
     STAGING_CHOICES = (
@@ -33,7 +34,8 @@ class Topic(models.Model):
     def __str__(self):
         return self.name
 
-class CatalogEntry(TranslatableMixin, MPTTModel):
+
+class CatalogEntry(MPTTModel):
 
     bodm_legacy_catalog_id = models.IntegerField()
     parent = TreeForeignKey('self', 
@@ -48,8 +50,12 @@ class CatalogEntry(TranslatableMixin, MPTTModel):
     )
     topic = models.ForeignKey('catalog.Topic', on_delete=models.CASCADE)
 
+    # name = models.ForeignKey(
+    #     'translation.Translation',
+    #     on_delete=models.SET_NULL,
+    #     null=True)
     name = models.ForeignKey(
-        'translation.TranslationKey',
+        'translation.Translation',
         verbose_name=_('name'),
         on_delete=models.SET_NULL,
         related_name='catalog_cataloglayer_name',

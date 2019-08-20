@@ -1,8 +1,12 @@
 from django.contrib import admin
+from django.contrib.admin import SimpleListFilter
+
+from django.utils.translation import ugettext_lazy as _
+
 
 # Register your models here.
 
-from translation.models import Translation, TranslationKey
+from translation.models import Translation
 
 
 class TranslationInline(admin.StackedInline):
@@ -26,23 +30,69 @@ class OldTranslationInline(admin.TabularInline):
     extra = 0
     max_num = 1
     can_delete = False
-    readonly_fields = ['revision', 'current', 'translation_key', 'de','fr', 'it', 'en', 'rm']
+    readonly_fields = ['revision', 'current', 'key', 'de','fr', 'it', 'en', 'rm']
     verbose_name = "Old Translation"
     verbose_name_plural = "Old Translations"
 
     def get_queryset(self, request):
         return super().get_queryset(request).filter(current=False).order_by('-created')
 
-@admin.register(TranslationKey)
-class TranslationKeyAdmin(admin.ModelAdmin):
 
-    list_display = ('id', )
-    search_fields = ('id', 'translation__de', 'translation__fr', 'translation__it', 'translation__en', 'translation__rm')
-    # list_filter = ('staging', 'chargeable',)
-    readonly_fields = ['id']
-    fields = ('id',)
-    inlines = [TranslationInline, OldTranslationInline]
 
+# Filter to have 'current=true' selected by default
+class CurrentFilter(SimpleListFilter):
+    title = _('Current')
+
+    parameter_name = 'current'
+
+    def lookups(self, request, model_admin):
+        return (
+            (None, _('Yes')),
+            ('no', _('No')),
+            ('all', _('All')),
+        )
+
+    def choices(self, cl):
+        for lookup, title in self.lookup_choices:
+            yield {
+                'selected': self.value() == lookup,
+                'query_string': cl.get_query_string({
+                    self.parameter_name: lookup,
+                }, []),
+                'display': title,
+            }
+
+    def queryset(self, request, queryset):
+        if self.value() == 'no':
+            return queryset.filter(current=False)
+        elif self.value() is None:
+            return queryset.filter(current=True)
+
+
+
+def revert(modeladmin, request, queryset):
+    for obj in queryset.all():
+        if obj.revision < 1:
+            # nothing to revert
+            continue
+        obj.__class__.objects.filter(key=obj.key, revision=obj.revision-1).update(current=True)
+        obj.delete()
+
+revert.short_description = "Revert to previous revision"
+
+
+
+@admin.register(Translation)
+class TranslationAdmin(admin.ModelAdmin):
+
+    list_display = ('key', 'revision', 'de', 'fr')
+    search_fields = ('key', 'de', 'fr', 'it', 'en', 'rm')
+    # list_filter = ((CurrentFilter),)
+    # list_filter = (('current'),)
+    readonly_fields = ['key','revision']
+    fields = ('key','revision', 'de','fr','it','en','rm')
+    # inlines = [OldTranslationInline]
+    actions = [revert]
 
 # @admin.register(Translation)
 # class TranslationAdmin(admin.ModelAdmin):

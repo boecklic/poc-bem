@@ -1,6 +1,6 @@
 Django==2.2
 django-filter==2.1.0
-djangorestframework==3.9.2
+djangorestframework==3.9.3
 Markdown==3.1
 pkg-resources==0.0.0
 psycopg2==2.8.2
@@ -13,5 +13,7 @@ django-mptt==0.10.0
 git+https://github.com/boecklic/django-ace.git
 mappyfile==0.8.2
 django-prettyjson==0.4.1
-drf-yasg=1.16.1
+drf-yasg==1.16.1
 packaging==19.1
+djangorestframework-yaml==1.0.3
+drf-extensions==0.5.0

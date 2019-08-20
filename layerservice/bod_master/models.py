@@ -89,6 +89,61 @@ class Dataset(models.Model):
         db_table = 'dataset'
 
 
+class GeocatImport(models.Model):
+    id = models.CharField(max_length=200, primary_key=True) #                            | text                        | not null
+    data_xml = models.CharField(max_length=200) #                      | xml                         | 
+    geocat_bezeichnung_de = models.CharField(max_length=200) #         | character varying(200)      | 
+    geocat_bezeichnung_fr = models.CharField(max_length=200) #         | character varying(200)      | 
+    geocat_bezeichnung_it = models.CharField(max_length=200) #         | character varying(200)      | 
+    geocat_bezeichnung_en = models.CharField(max_length=200) #         | character varying(200)      | 
+    geocat_bezeichnung_rm = models.CharField(max_length=200) #         | character varying(200)      | 
+    geocat_alternativtitel_de = models.CharField(max_length=200) #     | character varying(500)      | 
+    geocat_alternativtitel_fr = models.CharField(max_length=200) #     | character varying(500)      | 
+    geocat_alternativtitel_it = models.CharField(max_length=200) #     | character varying(500)      | 
+    geocat_alternativtitel_en = models.CharField(max_length=200) #     | character varying(500)      | 
+    geocat_alternativtitel_rm = models.CharField(max_length=200) #     | character varying(500)      | 
+    geocat_abstract_de = models.CharField(max_length=200) #            | character varying(5000)     | 
+    geocat_abstract_fr = models.CharField(max_length=200) #            | character varying(5000)     | 
+    geocat_abstract_it = models.CharField(max_length=200) #            | character varying(5000)     | 
+    geocat_abstract_en = models.CharField(max_length=200) #            | character varying(5000)     | 
+    geocat_abstract_rm = models.CharField(max_length=200) #            | character varying(5000)     | 
+    geocat_kontakt_metadaten_de = models.CharField(max_length=200) #   | character varying(200)      | 
+    geocat_kontakt_medataten_fr = models.CharField(max_length=200) #   | character varying(200)      | 
+    geocat_kontakt_metadaten_it = models.CharField(max_length=200) #   | character varying(200)      | 
+    geocat_kontakt_metadaten_en = models.CharField(max_length=200) #   | character varying(200)      | 
+    geocat_maxscale = models.CharField(max_length=200) #               | integer                     | 
+    geocat_minscale = models.CharField(max_length=200) #               | integer                     | 
+    geocat_datum = models.CharField(max_length=200) #                  | character varying(30)       | 
+    geocat_nutzungseinschraenkung = models.CharField(max_length=200) # | character varying(200)      | 
+    geocat_nutzungsbedingungen_de = models.CharField(max_length=200) # | character varying(300)      | 
+    geocat_nutzungsbedingungen_fr = models.CharField(max_length=200) # | character varying(300)      | 
+    geocat_nutzungsbedingungen_it = models.CharField(max_length=200) # | character varying(300)      | 
+    geocat_nutzungsbedingungen_en = models.CharField(max_length=200) # | character varying(300)      | 
+    geocat_thematik_de = models.CharField(max_length=200) #            | character varying(200)      | 
+    geocat_thematik_fr = models.CharField(max_length=200) #            | character varying(200)      | 
+    geocat_thematik_it = models.CharField(max_length=200) #            | character varying(200)      | 
+    geocat_thematik_en = models.CharField(max_length=200) #            | character varying(200)      | 
+    geocat_fk_geobasisdatensatz = models.CharField(max_length=200) #   | text                        | 
+    geocat_format = models.CharField(max_length=200) #                 | character varying(200)      | 
+    geocat_url_infos = models.CharField(max_length=200) #              | text                        | 
+    geocat_url_download = models.CharField(max_length=200) #           | text                        | 
+    geocat_url_portal = models.CharField(max_length=200) #             | text                        | 
+    geocat_geometrietyp = models.CharField(max_length=200) #           | character varying(100)      | 
+    geocat_epsg = models.CharField(max_length=200) #                   | character varying(100)      | 
+    bgdi_modified = models.CharField(max_length=200) #                 | timestamp without time zone | 
+    bgdi_created = models.CharField(max_length=200) #                  | timestamp without time zone | 
+    bgdi_modified_by = models.CharField(max_length=200) #              | character varying(50)       | 
+    bgdi_created_by = models.CharField(max_length=200) #               | character varying(50)       | 
+    bgdi_id = models.CharField(max_length=200) #                       | integer                     | not null default nextval('geocat_data_bgdi_id_seq'::regclass)
+    geocat_thematik = models.CharField(max_length=200) #               | text                        | 
+    geocat_email_datenherr = models.CharField(max_length=200) #        | text                        | 
+    geocat_nutzungsbedingungen_rm = models.CharField(max_length=200) # | character varying(300)      | 
+
+    class Meta:
+        managed = False
+        db_table = 'geocat_import'
+
+
 class GeocatPublish(models.Model):
     fk_id_dataset = models.OneToOneField('Dataset',
         db_column='fk_id_dataset',

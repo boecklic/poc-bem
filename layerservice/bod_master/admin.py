@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 
-from bod_master.models import Dataset, LayersJS, LayersJSView, Tileset, Topic, GeocatPublish
+from bod_master.models import Dataset, LayersJS, LayersJSView, Tileset, Topic, GeocatPublish, GeocatImport
 # Register your models here.
 
 class EditableFieldsOnlyMixin(object):
@@ -30,6 +30,15 @@ class DatasetAdmin(EditableFieldsOnlyMixin, admin.ModelAdmin):
     def get_bez_de(self, obj):
         return obj.geocatpublish.bezeichnung_de
     get_bez_de.short_description = 'Title DE'
+
+
+@admin.register(GeocatImport)
+class GeocatImportAdmin(EditableFieldsOnlyMixin, admin.ModelAdmin):
+
+    list_display = ('id', 'geocat_bezeichnung_de', )
+    # search_fields = ('fk_id_dataset', )
+    # list_filter = ('staging', 'chargeable',)
+    # readonly_fields = '__all__'
 
 
 @admin.register(GeocatPublish)

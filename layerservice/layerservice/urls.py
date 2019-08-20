@@ -26,6 +26,7 @@ from bod_master.urls import api_router as bod_master_api_router
 from catalog.urls import api_router as catalog_api_router
 from translation.urls import api_router as translation_api_router
 from layers.urls import api_router as layers_api_router
+from layers.urls import nested_router
 
 admin.site.site_header = 'Layer Service'
 
@@ -45,18 +46,20 @@ schema_view = get_schema_view(
    permission_classes=(permissions.AllowAny,),
 )
 
-default_api_router = routers.DefaultRouter()
+default_api_router = routers.DefaultRouter(trailing_slash=False)
 default_api_router.registry.extend(catalog_api_router.registry)
 default_api_router.registry.extend(translation_api_router.registry)
 default_api_router.registry.extend(layers_api_router.registry)
+default_api_router.registry.extend(nested_router.registry)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('tst/', include('tst.urls')),
-    re_path('api/v3/doc/swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
-    path('api/v3/doc/swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('api/v3/doc/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    path('api/v3/', include(default_api_router.urls)),
+    re_path('api/v4/doc/swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    path('api/v4/doc/swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('api/v4/doc/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    path('api/v4/', include(default_api_router.urls)),
+    # path('api/v4/', include(dataset_router.urls)),
     # path('api/v3/', include((catalog_api_router.urls, 'catalog'), namespace='catalog')),
     # path('api/v3/', include((translation_api_router.urls, 'translation'), namespace='translation')),
     # path('api/v3/', include((layers_api_router.urls, 'layers'), namespace='layers')),

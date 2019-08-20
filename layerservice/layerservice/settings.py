@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     'layers.apps.LayersConfig',
     'translation.apps.TranslationConfig',
     'catalog.apps.CatalogConfig',
-    'publication.apps.PublicationConfig'
+    'publication.apps.PublicationConfig',
+    'geo.apps.GeoConfig'
 ]
 
 MIDDLEWARE = [
@@ -84,7 +85,8 @@ WSGI_APPLICATION = 'layerservice.wsgi.application'
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
 # CREATE USER layerservice WITH PASSWORD 'layerservice';
-# CREATE DATABASE dj_layerservice WITH OWNER layerservice;
+# We need database with utf8 encoding (for jsonfield) and utf8 needs template0
+# CREATE DATABASE dj_layerservice WITH OWNER layerservice ENCODING 'UTF8' TEMPLATE template0;
 # GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO layerservice;
 
 DATABASES = {
@@ -222,5 +224,14 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 100
+    'PAGE_SIZE': 100,
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework_yaml.parsers.YAMLParser',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+        'rest_framework_yaml.renderers.YAMLRenderer',
+    ],   
 }

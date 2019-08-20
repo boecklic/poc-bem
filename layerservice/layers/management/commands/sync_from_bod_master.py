@@ -10,12 +10,15 @@ import mptt
 
 from layers.models import Tileset, Dataset
 from catalog.models import Topic, CatalogLayer, CatalogEntry
+from geo.models import SRS, srs_from_str
 from bod_master.models import Tileset as bod_master_Tileset
 from bod_master.models import Dataset as bod_master_Dataset
 from bod_master.models import Topic as bod_master_Topic
 from bod_master.models import Catalog as bod_master_Catalog
 from bod_master.models import XTDatasetCatalog as bod_master_XTDatasetCatalog
-from translation.models import TranslationKey, Translation
+from bod_master.models import GeocatImport as bod_master_GeocatImport
+from translation.models import Translation, create_or_update_translations
+
 
 
 logger = logging.getLogger('default')
@@ -31,6 +34,7 @@ def increment_suffix(s, separator='_'):
         suffix += 1
     parts[-1] = str(suffix)
     return separator.join(parts)
+
 
 
 TRANSLATION_KEY_MAX_LENGTH = 50
@@ -90,7 +94,7 @@ class Command(BaseCommand):
                         catalogentry_name_slug = slugify(bodm_catalog.name_de)
                     else:
                         catalogentry_name_slug = slugify("{}_root".format(topic))
-                    catalogentry.name = catalogentry.create_or_update_translations(
+                    catalogentry.name = create_or_update_translations(
                         catalogentry_name_slug,
                         de=bodm_catalog.name_de,
                         fr=bodm_catalog.name_fr,
@@ -108,11 +112,11 @@ class Command(BaseCommand):
 
                     for bodm_xtdatasetcatalog in bod_master_XTDatasetCatalog.objects.filter(catalog_id=catalogentry.bodm_legacy_catalog_id):
                         try:
-                            dataset = Dataset.objects.get(layer_name=bodm_xtdatasetcatalog.fk_dataset)
+                            dataset = Dataset.objects.get(name=bodm_xtdatasetcatalog.fk_dataset)
                         except Dataset.DoesNotExist:
                             pass
                         else:
-                            activated = dataset.layer_name in bodm_topic.selected_layers
+                            activated = dataset.name in bodm_topic.selected_layers
                             cataloglayer, created = CatalogLayer.objects.get_or_create(
                                 catalog_entry=catalogentry,
                                 dataset=dataset
@@ -128,27 +132,28 @@ class Command(BaseCommand):
                 dataset_id = bod_master_dataset.id_dataset
 
                 # fetch or create the dataset with this id
-                dataset, created = Dataset.objects.get_or_create(layer_name=dataset_id)
+                dataset, created = Dataset.objects.get_or_create(name=dataset_id)
                 if created:
                     print("created new dataset {}".format(dataset_id))
 
                 # ========
                 # Abstract
-                if not dataset.abstract and hasattr(bod_master_dataset, 'geocatpublish'):                
-
-                    # in case abstract_id is none use dataset_id
-                    if not bod_master_dataset.geocatpublish.alternativtitel_en:
-                        abstract_id = "{}_abstract".format(dataset_id)
-                    else:
-                        abstract_id = slugify(bod_master_dataset.geocatpublish.alternativtitel_en[:TRANSLATION_KEY_MAX_LENGTH])
-
-                    while(TranslationKey.objects.filter(id=abstract_id).exists()):
-                        abstract_id = increment_suffix(abstract_id)
-                else:
-                    abstract_id = dataset.abstract_id
-
                 if hasattr(bod_master_dataset, 'geocatpublish'):
-                    dataset.abstract = dataset.create_or_update_translations(
+                    if not dataset.abstract:
+
+                        # in case abstract_id is none use dataset_id
+                        if not bod_master_dataset.geocatpublish.alternativtitel_en:
+                            abstract_id = "{}_abstract".format(dataset_id)
+                        else:
+                            abstract_id = slugify(bod_master_dataset.geocatpublish.alternativtitel_en[:TRANSLATION_KEY_MAX_LENGTH])
+
+                        while(Translation.versioned.filter(key=abstract_id).exists()):
+                            abstract_id = increment_suffix(abstract_id)
+                    else:
+                        abstract_id = dataset.abstract.key
+
+
+                    dataset.abstract = create_or_update_translations(
                         abstract_id,
                         de=bod_master_dataset.geocatpublish.alternativtitel_de,
                         fr=bod_master_dataset.geocatpublish.alternativtitel_fr,
@@ -159,21 +164,22 @@ class Command(BaseCommand):
 
                 # ===========
                 # Description
-                if not dataset.description and hasattr(bod_master_dataset, 'geocatpublish'):
-
-                    # in case description_id is none use dataset_id
-                    if not bod_master_dataset.geocatpublish.bezeichnung_en:
-                        description_id = "{}_description".format(dataset_id)
-                    else:
-                        description_id = slugify(bod_master_dataset.geocatpublish.bezeichnung_en[:TRANSLATION_KEY_MAX_LENGTH])
-
-                    while(TranslationKey.objects.filter(id=description_id).exists()):
-                        description_id = increment_suffix(description_id)
-                else:
-                    description_id = dataset.description_id
-
                 if hasattr(bod_master_dataset, 'geocatpublish'):
-                    dataset.description = dataset.create_or_update_translations(
+
+                    if not dataset.description:
+                        # in case description_id is none use dataset_id
+                        if not bod_master_dataset.geocatpublish.bezeichnung_en:
+                            description_id = "{}_description".format(dataset_id)
+                        else:
+                            description_id = slugify(bod_master_dataset.geocatpublish.bezeichnung_en[:TRANSLATION_KEY_MAX_LENGTH])
+
+                        while(Translation.versioned.filter(key=description_id).exists()):
+                            description_id = increment_suffix(description_id)
+                    else:
+                        description_id = dataset.description.key
+
+
+                    dataset.description = create_or_update_translations(
                         description_id,
                         de = bod_master_dataset.geocatpublish.bezeichnung_de,
                         fr = bod_master_dataset.geocatpublish.bezeichnung_fr,
@@ -183,6 +189,15 @@ class Command(BaseCommand):
                     )
 
                 dataset.chargeable = bod_master_dataset.chargeable
+
+                try:
+                    geocatimport = bod_master_GeocatImport.objects.get(id=bod_master_dataset.fk_geocat)
+                    
+                    srs = int(srs_from_str(geocatimport.geocat_epsg))
+                    srs = SRS.objects.get(id=srs)
+                    dataset.srs = srs
+                except Exception as e:
+                    print(e)
 
                 dataset.save()
 
