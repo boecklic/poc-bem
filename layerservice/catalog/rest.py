@@ -10,12 +10,12 @@ from translation.rest import TranslationSerializer
 
 # Serializers define the API representation.
 class TopicSerializer(serializers.ModelSerializer):
-    title = TranslationSerializer()
+    title_key = TranslationSerializer()
     class Meta:
         model = Topic
         fields = (
             'name',
-            'title',
+            'title_key',
             'staging'
         )
 
@@ -52,6 +52,7 @@ class CatalogEntrySerializer(serializers.ModelSerializer):
     )
     datasets = serializers.HyperlinkedRelatedField(
         view_name='dataset-detail',
+        lookup_field='name',
         many=True,
         read_only=True
     )
