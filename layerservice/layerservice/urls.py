@@ -52,6 +52,7 @@ default_api_router.registry.extend(translation_api_router.registry)
 default_api_router.registry.extend(layers_api_router.registry)
 default_api_router.registry.extend(nested_router.registry)
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('tst/', include('tst.urls')),

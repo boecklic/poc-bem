@@ -95,9 +95,12 @@ DATABASES = {
         # 'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'dj_layerservice',
+        # 'USER': 'postgres',
+        # 'PASSWORD': 'yZ_vujnX4QRKakyZ.vph',
         'USER': 'layerservice',
         'PASSWORD': 'layerservice',
         'HOST': 'localhost',
+        # 'HOST': 'dj-layerservice.cy0tgrztbs1d.eu-west-1.rds.amazonaws.com',
         'PORT': '5432'
     },
     # default config for legacy data
@@ -233,5 +236,5 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework_yaml.renderers.YAMLRenderer',
-    ],   
+    ],
 }
