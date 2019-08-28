@@ -91,7 +91,7 @@ class Dataset(models.Model):
 
 class GeocatImport(models.Model):
     id = models.CharField(max_length=200, primary_key=True) #                            | text                        | not null
-    data_xml = models.CharField(max_length=200) #                      | xml                         | 
+    data_xml = models.TextField() #                      | xml                         | 
     geocat_bezeichnung_de = models.CharField(max_length=200) #         | character varying(200)      | 
     geocat_bezeichnung_fr = models.CharField(max_length=200) #         | character varying(200)      | 
     geocat_bezeichnung_it = models.CharField(max_length=200) #         | character varying(200)      | 

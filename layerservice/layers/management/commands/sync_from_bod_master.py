@@ -8,7 +8,7 @@ from django.utils import timezone
 
 import mptt
 
-from layers.models import Tileset, Dataset
+from layers.models import Tileset, Dataset, Metadata
 from catalog.models import Topic, CatalogLayer, CatalogEntry
 from geo.models import SRS, srs_from_str
 from bod_master.models import Tileset as bod_master_Tileset
@@ -190,6 +190,7 @@ class Command(BaseCommand):
 
                 dataset.chargeable = bod_master_dataset.chargeable
 
+                geocatimport = None
                 try:
                     geocatimport = bod_master_GeocatImport.objects.get(id=bod_master_dataset.fk_geocat)
                     
@@ -198,6 +199,23 @@ class Command(BaseCommand):
                     dataset.srs = srs
                 except Exception as e:
                     print(e)
+
+                if geocatimport:
+                    metadata, created = Metadata.objects.get_or_create(dataset=dataset)
+                    try:
+                        metadata.url_infos = geocatimport.geocat_url_infos
+                    except:
+                        metadata.url_infos = "http://no.valid.url"
+                    try:
+                        metadata.url_download = geocatimport.geocat_url_download
+                    except:
+                        metadata.url_download = "http://no.valid.url"
+                    try:
+                        metadata.url_portal = geocatimport.geocat_url_portal
+                    except:
+                        metadata.url_portal = "http://no.valid.url"
+                    metadata.save()
+
 
                 dataset.save()
 

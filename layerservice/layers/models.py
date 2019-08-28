@@ -137,6 +137,14 @@ class Dataset(models.Model):
         return self.name
 
 
+class Metadata(models.Model):
+
+    dataset = models.OneToOneField('layers.Dataset', on_delete=models.CASCADE)
+    url_infos = models.URLField(max_length=1024, null=True, blank=True)
+    url_download = models.URLField(max_length=1024, null=True, blank=True)
+    url_portal = models.URLField(max_length=1024, null=True, blank=True)
+
+
 class Tileset(models.Model):
 
     # TODO LEGACY_CLEANUP: once legacy sync is dropped, add
@@ -156,7 +164,7 @@ class Tileset(models.Model):
     cache_ttl = models.PositiveIntegerField(default=1800, help_text="Cache 'time to live'")
     resolution_min = models.DecimalField(max_digits=7, decimal_places=2, default=4000.0)
     resolution_max = models.DecimalField(max_digits=7, decimal_places=2, default=0.25)
-    published = models.BooleanField(default=False)
+    published = models.BooleanField(default=False, help_text="Publication in GetCapabilities")
     publication_service = models.ForeignKey('publication.WMTS', null=True, blank=True, on_delete=models.SET_NULL)
 
 

@@ -1,25 +1,72 @@
 import json
 import mappyfile
+from collections import OrderedDict
 
 from django.conf.urls import url, include
 
 from rest_framework import routers, serializers, viewsets, renderers
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 from rest_framework.reverse import reverse
+from rest_framework.relations import PKOnlyObject
 
 from rest_framework_extensions.mixins import NestedViewSetMixin
 
-from layers.models import Dataset, MapServerLayer
+from layers.models import Dataset, MapServerLayer, Metadata
 from translation.rest import TranslationSerializer
 
 
+class RemoveNullKeysSearializerMixin():
+    # stolen from https://stackoverflow.com/a/27016674
+
+    def to_representation(self, instance):
+        """
+        Object instance -> Dict of primitive datatypes.
+        """
+        ret = OrderedDict()
+        fields = self._readable_fields
+
+        for field in fields:
+            try:
+                attribute = field.get_attribute(instance)
+            except SkipField:
+                continue
+
+            # KEY IS HERE:
+            if attribute in [None, '']:
+                continue
+
+            # We skip `to_representation` for `None` values so that fields do
+            # not have to explicitly deal with that case.
+            #
+            # For related fields with `use_pk_only_optimization` we need to
+            # resolve the pk value.
+            check_for_none = attribute.pk if isinstance(attribute, PKOnlyObject) else attribute
+            if check_for_none is None:
+                ret[field.field_name] = None
+            else:
+                ret[field.field_name] = field.to_representation(attribute)
+
+        return ret
+
+
+class MetadataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Metadata
+        fields = (
+            'url_infos',
+            'url_download',
+            'url_portal'
+        )
+
+
 # Serializers define the API representation.
-class DatasetSerializer(serializers.ModelSerializer):
+class DatasetSerializer(RemoveNullKeysSearializerMixin, serializers.ModelSerializer):
     description = TranslationSerializer(read_only=True)
     short_description = TranslationSerializer(read_only=True)
     abstract = TranslationSerializer(read_only=True)
     url = serializers.HyperlinkedIdentityField(view_name='dataset-detail',
                                                lookup_field='name')
+    metadata = MetadataSerializer()
     # mapfiles = NestedHyperlinkedRelatedField(
     #     # many=True,
     #     read_only=True,
@@ -40,6 +87,8 @@ class DatasetSerializer(serializers.ModelSerializer):
             'short_description',
             'abstract',
             'chargeable',
+            'timing',
+            'metadata'
             # 'mapfiles'
         )
 
