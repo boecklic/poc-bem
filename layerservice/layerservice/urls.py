@@ -26,7 +26,6 @@ from bod_master.urls import api_router as bod_master_api_router
 from catalog.urls import api_router as catalog_api_router
 from translation.urls import api_router as translation_api_router
 from layers.urls import api_router as layers_api_router
-from layers.urls import nested_router
 
 admin.site.site_header = 'Layer Service'
 
@@ -50,7 +49,6 @@ default_api_router = routers.DefaultRouter(trailing_slash=False)
 default_api_router.registry.extend(catalog_api_router.registry)
 default_api_router.registry.extend(translation_api_router.registry)
 default_api_router.registry.extend(layers_api_router.registry)
-default_api_router.registry.extend(nested_router.registry)
 
 
 urlpatterns = [

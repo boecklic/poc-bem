@@ -25,3 +25,5 @@ nested_router.register(r'datasets', DatasetViewSet)
     parents_query_lookups=['group__dataset__name']
 )
 )
+
+api_router.registry.extend(nested_router.registry)

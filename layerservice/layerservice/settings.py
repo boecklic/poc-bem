@@ -227,13 +227,16 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework_google_json_style_api.pagination.GoogleJsonStylePageNumberPagination',
     'PAGE_SIZE': 100,
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
+        # 'rest_framework_google_json_style_api.parsers.JSONParser',
         'rest_framework_yaml.parsers.YAMLParser',
     ],
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
+        # 'rest_framework_google_json_style_api.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework_yaml.renderers.YAMLRenderer',
     ],

@@ -124,7 +124,7 @@ class MapServerLayerHyperlink(serializers.HyperlinkedIdentityField):
 
     def get_object(self, view_name, view_args, view_kwargs):
         lookup_kwargs = {
-            'group__dataset__name': view_kwargs['parent_lookup_group__dataset'],
+            'group__dataset__name': view_kwargs['parent_lookup_group__dataset__name'],
             'pk': view_kwargs['pk']
         }
         return self.get_queryset().get(**lookup_kwargs)

@@ -1,6 +1,8 @@
 from django.conf.urls import url, include
 
 from rest_framework import routers, serializers, viewsets
+from rest_framework.reverse import reverse
+from rest_framework_extensions.mixins import NestedViewSetMixin
 
 from catalog.models import Topic, CatalogEntry
 # from layers.rest import DatasetSerializer
@@ -43,13 +45,35 @@ class TopicViewSet(viewsets.ModelViewSet):
 #             'bgdi_id'
 #         )
 
+class TopicEntriesHyperlink(serializers.HyperlinkedIdentityField):
+    view_name = 'topic-entries-detail'
+    # queryset = MapServerLayer.objects.all()
+
+    def get_url(self, obj, view_name, request, format):
+        url_kwargs = {
+            'parent_lookup_topic_id': obj.topic_id,
+            'pk': obj.id,
+        }
+        return reverse(view_name, kwargs=url_kwargs, request=request, format=format)
+
+    def get_object(self, view_name, view_args, view_kwargs):
+        lookup_kwargs = {
+            'topic_id': view_kwargs['parent_lookup_topic_id'],
+            'pk': view_kwargs['pk']
+        }
+        return self.get_queryset().get(**lookup_kwargs)
+
 
 class CatalogEntrySerializer(serializers.ModelSerializer):
     # Create full url instead of bare raw id of related object
-    parent = serializers.HyperlinkedRelatedField(
-        view_name='catalogentry-detail',
+    url = TopicEntriesHyperlink(
+        view_name='topic-entries-detail',
         read_only=True
     )
+    # parent = TopicEntriesHyperlink(
+    #     view_name='topic-entries-detail',
+    #     read_only=True
+    # )
     datasets = serializers.HyperlinkedRelatedField(
         view_name='dataset-detail',
         lookup_field='name',
@@ -72,7 +96,7 @@ class CatalogEntrySerializer(serializers.ModelSerializer):
         )
 
 
-class CatalogEntryViewSet(viewsets.ModelViewSet):
+class CatalogEntryViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
     queryset = CatalogEntry.objects.all()
     serializer_class = CatalogEntrySerializer
 

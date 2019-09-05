@@ -27,21 +27,20 @@ class CatalogEntryAdmin(admin.ModelAdmin):
     root.short_description = "Root Node"
 
     def name_de(self, obj):
-        try:
-            return Translation.versioned.get(obj.name_key).de
-        except:
-            return None
+        return obj.name.de if obj.name.de else obj.name.key
+
 
 
 @admin.register(Topic)
 class TopicAdmin(admin.ModelAdmin):
 
-    list_display = ('name_de', 'staging')
+    list_display = ('name', 'staging')
     # search_fields = ('name', )
     list_filter = ('staging',)
 
     def name_de(self, obj):
-        try:
-            return Translation.versioned.get(obj.name_key).de
-        except:
-            return None
+        # try:
+        #     return Translation.versioned.get(obj.name_key).de
+        # except:
+        #     return None
+        return obj.name.de if obj.name.de else obj.name.key

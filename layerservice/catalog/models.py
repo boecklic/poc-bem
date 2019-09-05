@@ -63,7 +63,7 @@ class CatalogEntry(MPTTModel):
     )
 
     def __str__(self):
-        return self.name_id if self.name else '-'
+        return self.name.key if self.name else '-'
 
 class CatalogLayer(models.Model):
     catalog_entry = models.ForeignKey('catalog.CatalogEntry', on_delete=models.CASCADE)
