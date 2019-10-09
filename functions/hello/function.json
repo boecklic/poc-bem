@@ -1,0 +1,7 @@
+{
+    "description": "The hello world example",
+    "handler": "welt.handle",
+    "hooks":{
+      "build": "pip install -r requirements.txt -t ."
+    }
+}

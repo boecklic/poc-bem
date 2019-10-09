@@ -1,0 +1,10 @@
+{
+  "name": "poc-layerservice",
+  "description": "POC for a Layerservice",
+  "memory": 512,
+  "timeout": 5,
+  "role": "arn:aws:iam::050475232797:role/poc-layerservice_lambda_function",
+  "environment": {},
+  "runtime": "python3.6",
+  "region": "eu-west-1"
+}
