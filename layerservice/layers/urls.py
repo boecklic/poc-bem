@@ -5,7 +5,7 @@ from rest_framework_extensions.routers import NestedRouterMixin
 from layers.rest import DatasetViewSet, MapServerLayerViewSet
 
 api_router = RestRouter()
-api_router.register(r'datasets', DatasetViewSet)
+api_router.register(r'layers', DatasetViewSet)
 # api_router.register(r'mapfiles', MapServerConfigViewSet)
 # api_router.register(r'catalogentries', CatalogEntryViewSet)
 
@@ -17,7 +17,7 @@ class NestedRestRouter(NestedRouterMixin, RestRouter):
 
 nested_router = NestedRestRouter()
 (
-nested_router.register(r'datasets', DatasetViewSet)
+nested_router.register(r'layers', DatasetViewSet)
 .register(
     r'mapserverlayers',
     MapServerLayerViewSet,
