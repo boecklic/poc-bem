@@ -1,7 +1,9 @@
-# sublime editor
 *.sublime-*
-venv/
+**.vscode/
+**.venv/
 *.tar*
 __pycache__
 static/
 *.log
+node_modules
+pg-data/
