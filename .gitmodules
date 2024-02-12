@@ -1,0 +1,6 @@
+[submodule "app/sources/mf-chsdi3"]
+	path = app/sources/mf-chsdi3
+	url = git@github.com:geoadmin/mf-chsdi3.git
+[submodule "app/sources/wms-mapfile_include"]
+	path = app/sources/wms-mapfile_include
+	url = git@github.com:geoadmin/wms-mapfile_include.git
