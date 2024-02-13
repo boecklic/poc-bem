@@ -91,46 +91,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # CREATE DATABASE dj_bem WITH OWNER bem ENCODING 'UTF8' TEMPLATE template0;
 # GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO bem;
 
-DATABASES = {
-    'default': {
-        # 'ENGINE': 'django.db.backends.sqlite3',
-        # 'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'dj_control',
-        # 'USER': 'postgres',
-        # 'PASSWORD': 'yZ_vujnX4QRKakyZ.vph',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'localhost',
-        'PORT': '5432'
-    },
-    # default config for legacy data
-    're2': {
-        # 'ENGINE': 'django.db.backends.sqlite3',
-        # 'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'bod_master',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'localhost',
-        'PORT': '5432'
-    },
-    # Django doesn't support postgres database schemas out of the box,
-    # so we create a separate connection per schema
-    # Note: we could use this connection for all legacy models, it's
-    # left here as a reference in case of future needs of this functionality
-    're3': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'OPTIONS': {
-            'options': '-c search_path=public,re3'
-        },
-        'NAME': 'bod_master',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'localhost',
-        'PORT': '5432'
-    },
-}
+
 
 # use a custom router to support schemas
 DATABASE_ROUTERS = ('config.dbrouter.SchemaEnabledDBRouter',)
