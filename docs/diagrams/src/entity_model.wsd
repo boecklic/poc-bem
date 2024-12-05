@@ -1,0 +1,20 @@
+@startuml
+left to right direction
+class a
+hide a
+entity "Provider" as provider {
+    +name
+    +abbr
+}
+entity "Attribution" as attribution
+entity "Dataset" as dataset
+
+provider "1" o-- "0..*" dataset
+provider *-- attribution
+dataset "1" *-- "1" attribution : has
+/'entity Provider as provider
+entity Dataset as dataset
+entity Attribution as attribution
+
+provider o-- dataset'/
+@enduml

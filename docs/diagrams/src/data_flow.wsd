@@ -1,0 +1,24 @@
+@startuml
+left to right direction
+actor dataprovider
+
+[business portal] as bp
+[ingest]
+database S3
+[transformation]
+[WMS]
+database EFS
+[Feature API]
+database Elastic
+
+dataprovider --> bp
+bp --> ingest
+ingest .> S3
+ingest --> transformation
+WMS .> EFS
+
+transformation --> WMS
+transformation --> [Feature API]
+[Feature API] .> Elastic
+
+@enduml

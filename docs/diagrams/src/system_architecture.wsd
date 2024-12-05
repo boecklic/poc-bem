@@ -1,0 +1,48 @@
+@startuml
+frame "control" {
+    top to bottom direction
+    [catalog]
+    [access mgmt]
+}
+
+frame "data ingest" as di {
+    [ingest]
+}
+
+frame "data transformation" as dt {
+    top to bottom direction
+    [derivation]
+    [aggregation]
+    [harmonisation]
+    [transformation]
+}
+
+frame portals {
+    [mapviewer]
+    [docu]
+    [business portal]
+}
+
+skinparam packageStyle rectangle
+package publication {
+    frame "visualisation" {
+        top to bottom direction
+        [maps]
+        [tiles]
+    }
+
+    frame "data retrieval" {
+        top to bottom direction
+        [feature]
+        [EDR]
+        [download]
+    }
+}
+
+control --> di
+di --> dt
+dt --> publication
+control <-- portals
+portals --> publication
+
+@enduml
