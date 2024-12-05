@@ -7,6 +7,7 @@ import ast
 from pprint import pprint
 import psycopg2
 from multiprocessing import Pool
+import json
 
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.text import slugify
@@ -93,13 +94,21 @@ class ClassDefinitionVisitor(ast.NodeVisitor):
             #                 Constant(value='vd'),
             #                 Constant(value=False)])),
 
+            # loop over all fields in the class definition
+            # pattern is
+            # id = Column('bgdi_id', Integer, primary_key=True)
             for field in node.body:
+                print(ast.dump(field.value, indent=4))
+                fieldvalue = {}
                 if isinstance(field, ast.Assign):
+                    # left side of assignment must be a single value (e.g. 'id'
+                    # in the example above)
                     if len(field.targets) > 1:
                         print("--WARN I don't know how to handle targets with more than one entry")
                     else:
                         fieldname = field.targets[0].id
 
+                    # e.g. __template__ = 'templates/htmlpopup/geomol_temperatur_top.mako'
                     if isinstance(field.value, ast.Constant):
                         fieldvalue = field.value.value
                     elif isinstance(field.value, ast.Dict):
@@ -116,8 +125,28 @@ class ClassDefinitionVisitor(ast.NodeVisitor):
                             else:
                                 values.append(None)
                         fieldvalue = dict(map(lambda k, v: (k,v), keys, values))
+                    elif isinstance(field.value, ast.Call):
+                        primary_key = None
+                        db_col_name = fieldname
+                        if field.value.func.id == 'Column':
+                            for arg in field.value.args:
+                                if isinstance(arg, ast.Constant):
+                                    db_col_name = arg.value
+                                elif isinstance(arg, ast.Name):
+                                    db_col_typ = arg.id
+                            for keyword in field.value.keywords:
+                                if keyword.arg == 'primary_key':
+                                    primary_key = keyword.value.value
+                            fieldvalue = {
+                                'db_col_name': db_col_name,
+                                'db_col_typ': db_col_typ
+                            }
+                            if primary_key:
+                                fieldvalue['primary_key'] = primary_key
+                        print(fieldname, fieldvalue)
                     else:
-                        fieldvalue = {}
+                        print(type(field.value), field.value)
+
                     _cls['fields'][fieldname] = fieldvalue
 
             ClassDefinitions[node.name] = _cls
@@ -260,6 +289,9 @@ class Command(BaseCommand):
                 visitor = ClassDefinitionVisitor(db_name=f'{db_name}_master')
                 visitor.visit(tree)
 
+            with open('classdefinitions-dump.json','w') as f:
+                pprint(ClassDefinitions, f)
+
             for dataset_id, modelname in Register.items():
                 try:
                     dataset = Dataset.objects.get(name=dataset_id)
@@ -272,17 +304,18 @@ class Command(BaseCommand):
                     continue
                 model = ClassDefinitions[modelname]
 
+                vector_model, created = VectorModel.objects.get_or_create(provider=dataset.provider, name=modelname)
                 if dbcluster_available:
                     try:
                         table_schema = get_table_schema(model['fields']['__db_name__'], model['fields']['__tablename__'])
                         pk_field = get_primary_key(database=model['fields']['__db_name__'], tablename=model['fields']['__tablename__'], schema=model['fields'].get('__table_args__', {}).get("schema", "public"))
-                    except:
+                    except Exception as e:
+                        print(e)
                         pass
                     else:
-                        vector_model, created = VectorModel.objects.get_or_create(provider=dataset.provider, name=modelname)
                         vector_model.db_fields = {k:v for k,v,_,_ in table_schema}
-                        vector_model.chsdi_fields = model['fields']
-                        vector_model.save()
+                vector_model.chsdi_fields = model['fields']
+                vector_model.save()
 
 
                 featurecollection, created = FeatureCollection.objects.get_or_create(dataset=dataset,slug=modelname)

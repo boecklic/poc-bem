@@ -44,10 +44,10 @@ Das Ziel dieser Initiative ist es, eine Bestandesaufnahme der bestehenden Teile 
 - [Datenarchitektur: Entitätenmodell](#datenarchitektur-entitätenmodell)
 - [Systemarchitekur](#systemarchitekur)
 - [Datenarchitektur: Datenflüsse \& Datenhaltung](#datenarchitektur-datenflüsse--datenhaltung)
+- [Prozesse \& Organisation](#prozesse--organisation)
 - [Technologie \& Plattformarchitektur](#technologie--plattformarchitektur)
-- [Formats/Standards](#formatsstandards)
-- [Processes](#processes)
 - [Non-functional Requirements](#non-functional-requirements)
+- [Formats/Standards](#formatsstandards)
 
 ## Glossar
 
@@ -72,11 +72,19 @@ Inspiration: see [Terminologie & Abkürzungen](https://ltwiki.adr.admin.ch:8443/
 
 Das Entity Model stellt sämtliche Datenentitäten welche sich aus konzeptioneller Betrachtung der Systeme ergeben inklusive ihrer Abhängigkeiten dar. Ein vereinheitlichtes Entitätenmodell ist eine ganz zentrale Voraussetzung für eine Konvergation der Teilsysteme hin zu einer Plattform.
 
+---
+> Als **Entität** (auch Informationsobjekt genannt) wird in der Datenmodellierung ein eindeutig zu bestimmendes Objekt bezeichnet, über das Informationen gespeichert oder verarbeitet werden sollen. Das Objekt kann materiell oder immateriell, konkret oder abstrakt sein. 
+---
+
 Bsp:
 
 ![entity model](diagrams/out/entity_model/entity_model.png)
 
+**Deliverable**:
 
+- graphisches Entitätenmodell; Identifizierung von Gemeinsamkeiten und Abweichungen/Inkompatibilitäten
+- Liste mit grundlegenden Fragen und gegebenenfalls bereits Antworten vom Business welche beantwortet werden müssen um weitergehen zu können (sollen nach Möglichkeit laufen adressiert werden)
+- evtl. Draft von einem Ziel-Entitätenmodell
 
 ## Systemarchitekur
 
@@ -105,6 +113,20 @@ Bsp:
 
 ![Datenfluss](diagrams/out/data_flow/data_flow.png)
 
+**Deliverable**:
+
+- Graphische Diagramme welche die Datenflüsse der zentralen Entitäten abbilden.
+
+
+## Prozesse & Organisation
+
+- Geschäftsprozesse
+- Anfrage
+- Betriebsprozesse
+  - Support
+  - Incident
+- Entwicklungsprozess
+
 ## Technologie & Plattformarchitektur
 
 Welche Technologien werden eingesetzt?
@@ -114,18 +136,6 @@ Welche Technologien werden eingesetzt?
   - AWS
   - on-prem Cloudsigma
 
-## Formats/Standards
-
-asdf
-
-## Processes
-
-- Anfrage
-- Betriebsprozesse
-  - Support
-  - Incident
-- Entwicklungsprozess
-
 ## Non-functional Requirements
 
 - Welche Anforderungen ergeben sich aus regulatorischer oder gesetzlicher Sicht betreffend Datenzugriff und -schutz.
@@ -134,6 +144,13 @@ asdf
 - ISO?
 - BCM
 
+## Formats/Standards
+
+Welche Formate werden verwendet? Welche Standards existieren, welche davon sind relevant oder bindend?
+
 # Zielbild Architektur
 
 T.b.d
+
+# Transition 1
+
